@@ -1,0 +1,38 @@
+# Render blueprint for the REX Platform API.
+#
+# The dashboard is not here: it deploys to Vercel, and the two are configured to reach each other
+# only through environment variables, so either can move host without touching the other's code.
+
+services:
+  - type: web
+    name: rex-platform-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # Ohio, matching the Neon region, so the database round trip stays inside one AWS region
+    # rather than crossing the country on every query.
+    region: ohio
+    plan: free
+    healthCheckPath: /actuator/health
+    autoDeploy: true
+
+    envVars:
+      # Marked sync:false so the values are set on the service rather than committed here.
+      # A connection string in a blueprint is a credential in version control.
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+
+      # Free instances get 512MB, and the JVM reads the container limit rather than the host's
+      # total because of MaxRAMPercentage in the Dockerfile.
+      - key: JAVA_OPTS
+        value: "-XX:MaxRAMPercentage=70.0 -XX:+UseSerialGC -Xss512k"
+
+      # The sweep interval is longer here than locally. A free instance sleeps when idle, so a
+      # tight loop would keep it awake and burn the monthly allowance for nothing.
+      - key: REX_ROLLOUT_SWEEP_INTERVAL_MS
+        value: "120000"
