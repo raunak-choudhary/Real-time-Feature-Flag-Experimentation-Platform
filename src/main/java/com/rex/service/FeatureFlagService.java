@@ -1,6 +1,7 @@
 package com.rex.service;
 
 import com.rex.evaluation.BucketHasher;
+import com.rex.event.FlagChangedEvent;
 import com.rex.exception.DuplicateResourceException;
 import com.rex.model.FeatureFlag;
 import com.rex.repository.FeatureFlagRepository;
@@ -10,6 +11,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,13 +28,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class FeatureFlagService {
 
+  private final ApplicationEventPublisher eventPublisher;
+
   private static final Logger logger = LoggerFactory.getLogger(FeatureFlagService.class);
 
   private final FeatureFlagRepository featureFlagRepository;
 
   @Autowired
-  public FeatureFlagService(FeatureFlagRepository featureFlagRepository) {
+  public FeatureFlagService(
+      FeatureFlagRepository featureFlagRepository, ApplicationEventPublisher eventPublisher) {
     this.featureFlagRepository = featureFlagRepository;
+    this.eventPublisher = eventPublisher;
   }
 
   // ============================================
@@ -169,6 +175,7 @@ public class FeatureFlagService {
     flag.setDescription(description);
     flag.setEnvironment(environment);
 
+    publishChange(flag, FlagChangedEvent.ChangeType.UPDATED);
     return featureFlagRepository.save(flag);
   }
 
@@ -186,6 +193,7 @@ public class FeatureFlagService {
     featureFlagRepository.save(flag);
 
     logger.info("Successfully archived feature flag: {}", flag.getName());
+    publishChange(flag, FlagChangedEvent.ChangeType.ARCHIVED);
   }
 
   // ============================================
@@ -216,6 +224,7 @@ public class FeatureFlagService {
         wasEnabled,
         savedFlag.getEnabled());
 
+    publishChange(savedFlag, FlagChangedEvent.ChangeType.TOGGLED);
     return savedFlag;
   }
 
@@ -302,6 +311,7 @@ public class FeatureFlagService {
 
     logger.info(
         "Successfully updated rollout percentage for '{}' to {}%", flag.getName(), percentage);
+    publishChange(savedFlag, FlagChangedEvent.ChangeType.ROLLOUT_CHANGED);
     return savedFlag;
   }
 
@@ -523,5 +533,17 @@ public class FeatureFlagService {
   @Transactional(readOnly = true)
   public boolean existsById(Long id) {
     return featureFlagRepository.existsById(id);
+  }
+
+  /** Publishes a change so connected clients converge without polling. */
+  private void publishChange(FeatureFlag flag, FlagChangedEvent.ChangeType changeType) {
+    eventPublisher.publishEvent(
+        FlagChangedEvent.of(
+            flag.getId(),
+            flag.getName(),
+            flag.getEnvironment(),
+            Boolean.TRUE.equals(flag.getEnabled()),
+            flag.getRolloutPercentage() != null ? flag.getRolloutPercentage() : 0,
+            changeType));
   }
 }
