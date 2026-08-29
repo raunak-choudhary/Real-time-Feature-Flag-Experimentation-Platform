@@ -6,6 +6,7 @@ import com.rex.evaluation.FlagContext;
 import com.rex.evaluation.FlagEvaluator;
 import com.rex.model.FeatureFlag;
 import com.rex.service.FeatureFlagService;
+import com.rex.service.TargetingRuleService;
 import com.rex.telemetry.ExposureRecorder;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,21 +30,27 @@ public class EvaluationController {
 
   private final FeatureFlagService flagService;
   private final ExposureRecorder exposureRecorder;
+  private final TargetingRuleService targetingRuleService;
 
-  public EvaluationController(FeatureFlagService flagService, ExposureRecorder exposureRecorder) {
+  public EvaluationController(
+      FeatureFlagService flagService,
+      ExposureRecorder exposureRecorder,
+      TargetingRuleService targetingRuleService) {
     this.flagService = flagService;
     this.exposureRecorder = exposureRecorder;
+    this.targetingRuleService = targetingRuleService;
   }
 
   @GetMapping("/{flagName}")
   public EvaluationResponse evaluate(
       @PathVariable String flagName,
       @RequestParam String userId,
-      @RequestParam(defaultValue = DEFAULT_ENVIRONMENT) String environment) {
+      @RequestParam(defaultValue = DEFAULT_ENVIRONMENT) String environment,
+      @RequestParam(required = false) java.util.Map<String, String> attributes) {
 
     return flagService
         .getFlagByName(flagName)
-        .map(flag -> decide(flag, flagName, userId, environment))
+        .map(flag -> decide(flag, flagName, userId, environment, userAttributes(attributes)))
         .orElseGet(
             () ->
                 new EvaluationResponse(
@@ -57,21 +64,38 @@ public class EvaluationController {
       @RequestParam(defaultValue = DEFAULT_ENVIRONMENT) String environment) {
 
     return flagService.getFlagsByEnvironment(environment).stream()
-        .map(flag -> decide(flag, flag.getName(), userId, environment))
+        .map(flag -> decide(flag, flag.getName(), userId, environment, java.util.Map.of()))
         .toList();
   }
 
+  /** Query parameters other than the reserved ones are treated as user attributes. */
+  private static java.util.Map<String, String> userAttributes(
+      java.util.Map<String, String> allParameters) {
+    if (allParameters == null) {
+      return java.util.Map.of();
+    }
+    java.util.Map<String, String> attributes = new java.util.HashMap<>(allParameters);
+    attributes.remove("userId");
+    attributes.remove("environment");
+    return attributes;
+  }
+
   private EvaluationResponse decide(
-      FeatureFlag flag, String flagName, String userId, String environment) {
+      FeatureFlag flag,
+      String flagName,
+      String userId,
+      String environment,
+      java.util.Map<String, String> attributes) {
 
     FlagContext context =
         new FlagContext(
             flag.getName(),
             Boolean.TRUE.equals(flag.getEnabled()),
             flag.getEnvironment(),
-            flag.getRolloutPercentage() != null ? flag.getRolloutPercentage() : 0);
+            flag.getRolloutPercentage() != null ? flag.getRolloutPercentage() : 0,
+            targetingRuleService.rulesFor(flag.getId()));
 
-    EvaluationResult result = FlagEvaluator.evaluate(context, userId, environment);
+    EvaluationResult result = FlagEvaluator.evaluate(context, userId, environment, attributes);
     exposureRecorder.recordFlagExposure(flag, userId, result.enabled(), environment);
 
     return new EvaluationResponse(
