@@ -1,5 +1,6 @@
 package com.rex.service;
 
+import com.rex.evaluation.BucketHasher;
 import com.rex.exception.DuplicateResourceException;
 import com.rex.model.Experiment;
 import com.rex.model.UserCohort;
@@ -600,14 +601,12 @@ public class ExperimentService {
 
   /** Calculate user percentile for traffic allocation (1-100). */
   private int calculateUserPercentile(String userId) {
-    int hash = Math.abs(userId.hashCode());
-    return hash % 100 + 1;
+    return BucketHasher.percentileFor("traffic_allocation", userId) + 1;
   }
 
   /** Calculate user hash for consistent assignment. */
   private int calculateUserHash(String userId, String context) {
-    String combined = userId + ":" + context;
-    return Math.abs(combined.hashCode());
+    return BucketHasher.bucketFor(context, userId);
   }
 
   /** Validate experiment readiness before marking as ready. */

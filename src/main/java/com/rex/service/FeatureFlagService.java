@@ -1,5 +1,6 @@
 package com.rex.service;
 
+import com.rex.evaluation.BucketHasher;
 import com.rex.exception.DuplicateResourceException;
 import com.rex.model.FeatureFlag;
 import com.rex.repository.FeatureFlagRepository;
@@ -505,9 +506,7 @@ public class FeatureFlagService {
    * same user always gets same result.
    */
   private int calculateUserPercentile(String userId, String context) {
-    String combined = userId + ":" + context;
-    int hash = Math.abs(combined.hashCode());
-    return hash % 100 + 1; // Return 1-100
+    return BucketHasher.percentileFor(context, userId) + 1;
   }
 
   // ============================================
