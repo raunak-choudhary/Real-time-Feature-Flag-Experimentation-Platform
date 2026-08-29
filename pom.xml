@@ -41,11 +41,12 @@
     <!--
       Coverage floor. Set just below the current measurement so it locks in what exists and fails
       the build on any regression, then raised deliberately as each phase lands its tests:
-      Phase 1 raised it to 0.38 line and 0.22 branch against a measured 40.1 and 24.7,
-      leaving a small margin rather than sitting on the exact figure. Phase 2 to 0.60, Phase 4 to 0.85 line and 0.75 branch. The evaluation and
+      Phase 1 raised it to 0.36 line and 0.22 branch against 37.8 and 24.7 measured from a
+      clean single run. Always measure with `clean verify`: without it jacoco.exec accumulates
+      across runs and reports a figure several points higher than CI will see. Phase 2 to 0.60, Phase 4 to 0.85 line and 0.75 branch. The evaluation and
       statistics packages are pure functions and gain a stricter per-package rule once they exist.
     -->
-    <coverage.line.minimum>0.38</coverage.line.minimum>
+    <coverage.line.minimum>0.36</coverage.line.minimum>
     <coverage.branch.minimum>0.22</coverage.branch.minimum>
   </properties>
   <dependencyManagement>

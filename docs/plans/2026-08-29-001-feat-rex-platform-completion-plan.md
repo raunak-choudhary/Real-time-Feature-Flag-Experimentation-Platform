@@ -1026,7 +1026,8 @@ Resume at Phase 2, Unit 2.1.
 colima start
 docker compose up -d
 set -a; . ./.env; set +a
-./mvnw -B verify        # backend: Spotless, Checkstyle, tests, SpotBugs, JaCoCo floor
+./mvnw -B clean verify  # backend: Spotless, Checkstyle, tests, SpotBugs, JaCoCo floor
+                        # always `clean`, or jacoco.exec accumulates and inflates coverage
 npm ci && npm run verify # frontend: tsc strict, type-aware ESLint, Vitest
 ```
 
@@ -1034,9 +1035,13 @@ npm ci && npm run verify # frontend: tsc strict, type-aware ESLint, Vitest
 
 ### Phase 1 outcome and deviations from plan
 
-Coverage moved from 7.5 percent line and 0 percent branch to **40.1 and 24.7**. The floor is now
-0.38 and 0.22, a small margin below measured rather than sitting on the exact figure, which would
-fail on any trivial change.
+Coverage moved from 7.5 percent line and 0 percent branch to **37.8 and 24.7**. The floor is now
+0.36 and 0.22, a small margin below measured.
+
+**A measurement error worth recording.** The floor was first set to 0.38 from a local reading of
+40.1 percent, and CI then failed at 0.37. The local figure was inflated because `jacoco.exec`
+accumulates across repeated `verify` runs; only `clean verify` gives the single-run number CI
+sees. All coverage figures in this plan are from clean runs.
 
 Findings during the phase:
 
