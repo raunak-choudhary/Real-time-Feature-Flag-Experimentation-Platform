@@ -92,7 +92,7 @@ public class GlobalExceptionHandler {
     return problem(
         HttpStatus.NOT_FOUND,
         "Endpoint not found",
-        "No endpoint is mapped to " + exception.getResourcePath(),
+        describeMissingEndpoint(exception.getResourcePath()),
         "not-found");
   }
 
@@ -104,6 +104,14 @@ public class GlobalExceptionHandler {
         "Internal server error",
         "The request could not be completed",
         "internal");
+  }
+
+  // The root path reports an empty resource path, which would otherwise render as a sentence that
+  // stops mid way. The root is also the first URL anyone opens by hand.
+  private static String describeMissingEndpoint(String resourcePath) {
+    return resourcePath == null || resourcePath.isBlank()
+        ? "No endpoint is mapped to the root path. The API is served under /api/v1."
+        : "No endpoint is mapped to /" + resourcePath;
   }
 
   private ProblemDetail problem(HttpStatus status, String title, String detail, String type) {

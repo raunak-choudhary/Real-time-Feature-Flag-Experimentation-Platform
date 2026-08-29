@@ -31,13 +31,23 @@ class ErrorResponseTest extends PostgresIntegrationTest {
         .perform(get("/api/v1/does-not-exist"))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.title").value("Endpoint not found"))
-        .andExpect(jsonPath("$.status").value(404));
+        .andExpect(jsonPath("$.status").value(404))
+        .andExpect(jsonPath("$.detail").value("No endpoint is mapped to /api/v1/does-not-exist"));
   }
 
   @Test
   @DisplayName("an unmapped path outside the API namespace is also a 404")
   void unmappedPathOutsideApiNamespaceReturnsNotFound() throws Exception {
     mockMvc.perform(get("/totally/unknown")).andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("the root path explains where the API lives instead of trailing off")
+  void rootPathExplainsWhereTheApiLives() throws Exception {
+    mockMvc
+        .perform(get("/"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("/api/v1")));
   }
 
   @Test

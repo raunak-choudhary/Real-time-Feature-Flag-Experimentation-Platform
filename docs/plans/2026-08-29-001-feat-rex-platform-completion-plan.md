@@ -1006,7 +1006,7 @@ Stated so the catalogue entry can be written from verified facts rather than adj
 
 ## Current Status
 
-**Last completed: Phase 7. 238 Java tests, 44 TypeScript tests, verify green.**
+**Last completed: Phase 7. 238 Java tests, 49 TypeScript tests, verify green.**
 Resume at Phase 8, Unit 8.1.
 
 Live: dashboard https://rex-platform-iota.vercel.app, API
@@ -1047,7 +1047,11 @@ Three defects surfaced only once the code ran on someone else's infrastructure:
    exception Spring raises when no controller claims a path. Resource level 404s were unaffected,
    which is why local testing never showed it. Fixed, with `ErrorResponseTest` pinning the status
    code for each failure a client can cause.
-3. `.vercelignore` used an unanchored `src/`, which matches any directory of that name at any
+3. The dashboard sat on a reconnecting badge because `NEXT_PUBLIC_WS_URL` was set to the socket
+   endpoint rather than the origin, and the SDK appends the endpoint path itself, so the client
+   dialled a doubled path. Nothing could have caught it: the value only takes its real form at
+   deploy time. `brokerUrlFrom` now accepts either form.
+4. `.vercelignore` used an unanchored `src/`, which matches any directory of that name at any
    depth and so excluded `sdk/src`. Every path is now anchored.
 
 Deployment is manual for now. Auto-Deploy is set to On Commit and the branch is correct, but the
@@ -1323,3 +1327,25 @@ re-checked afterwards for forward references. There are none.
   `src/main/java/com/rex/model/Experiment.java` (statistical fields already modelled)
 - Spring Boot 3.4 Problem Details, `spring-boot-starter-websocket` STOMP support
 - Wilson score interval for binomial proportion confidence bounds
+
+## Phase 9: Engineering documentation
+
+Deferred until Phase 8 closes. The repository currently explains what the system does and not why
+it is built the way it is, and the reasoning is the part worth reading.
+
+This is a backend project. The dashboard is roughly 500 lines of TypeScript whose job is to prove
+that a change propagates in real time; the substance is the Java underneath. The documentation
+should be weighted accordingly and should cover the decisions rather than the file layout:
+
+- Why MurmurHash3 over `String.hashCode`, and what the chi-square statistic over 100,000 synthetic
+  users actually establishes.
+- Why bucketing uses 10,000 basis points rather than 100 percentage points.
+- Why guardrails measure from `stageEnteredAt` rather than a trailing window, and the bug that
+  forced the change.
+- Why the rollout scheduler broadcasts directly instead of through a transactional event listener.
+- Why a winner requires both statistical significance and a sample size gate, and what peeking
+  would do without the second condition.
+- Why `FlagCache.applyChange` returns a boolean, and the asymmetry between a flag switching off
+  and a flag switching on.
+- Why ArchUnit exists here, and the three separate times it caught a service reaching into the API
+  layer.
