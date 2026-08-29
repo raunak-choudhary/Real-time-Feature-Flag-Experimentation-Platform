@@ -106,6 +106,21 @@ jobs:
           path: target/site/jacoco/
           retention-days: 14
 
+  rollout:
+    name: Rollout automation and audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      # Staged advancement, guardrail rollback and the audit trail are the flagship behaviour, so
+      # a regression in them fails by name rather than inside a general test failure.
+      - name: Verify staged rollout, guardrails and audit
+        run: ./mvnw -B --no-transfer-progress test -Dtest='com.rex.rollout.*Test,com.rex.audit.*Test' -DfailIfNoSpecifiedTests=false
+
   statistics:
     name: Statistics (verified against worked examples)
     runs-on: ubuntu-latest

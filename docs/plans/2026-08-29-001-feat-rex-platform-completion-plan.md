@@ -756,7 +756,7 @@ under-powered experiment reports inconclusive rather than significant.
 The flagship capability. Everything before this phase is machinery; this is the machinery doing
 something a person would otherwise have to sit and watch.
 
-- [ ] **Unit 5.1: Rollout schedules**
+- [x] **Unit 5.1: Rollout schedules**
 
 **Goal:** A flag advances through rollout stages on its own.
 
@@ -786,7 +786,7 @@ something a person would otherwise have to sit and watch.
 - Edge case: a restart mid-schedule resumes at the correct stage rather than from the beginning.
 - Error path: a schedule referencing a deleted flag is skipped and logged, not fatal to the sweep.
 
-- [ ] **Unit 5.2: Guardrail metrics and automatic rollback**
+- [x] **Unit 5.2: Guardrail metrics and automatic rollback**
 
 **Goal:** A bad release rolls itself back before a human notices.
 
@@ -823,7 +823,7 @@ something a person would otherwise have to sit and watch.
 - Integration: a rollback broadcasts and a subscribed SDK client reflects the reverted percentage.
 - Error path: an unavailable metric is treated as unknown and blocks advancement rather than allowing it, failing safe.
 
-- [ ] **Unit 5.3: Audit trail and stale flag detection**
+- [x] **Unit 5.3: Audit trail and stale flag detection**
 
 **Goal:** Every configuration change is attributable, and dead flags surface themselves.
 
@@ -1006,8 +1006,8 @@ Stated so the catalogue entry can be written from verified facts rather than adj
 
 ## Current Status
 
-**Last completed: Phase 4, both units. 198 Java tests, 20 TypeScript tests, verify green.**
-Resume at Phase 5, Unit 5.1.
+**Last completed: Phase 5, all three units. 230 Java tests, 20 TypeScript tests, verify green.**
+Resume at Phase 6, Unit 6.1.
 
 Measured propagation latency, Colima with four cores: **p50 4ms, p95 6ms, max 88ms** over 50
 trials. Quote the p95 figure and say where it was measured.
@@ -1019,7 +1019,7 @@ trials. Quote the p95 figure and say where it was measured.
 | 2. Evaluation engine | Complete |
 | 3. Real-time and SDK | Complete |
 | 4. Statistics | Complete |
-| 5. Rollout automation and audit | Not started |
+| 5. Rollout automation and audit | Complete |
 | 6. Dashboard | Not started |
 | 7. Deployment | Not started |
 | 8. Legacy service coverage | Not started |
@@ -1036,6 +1036,29 @@ npm ci && npm run verify # frontend: tsc strict, type-aware ESLint, Vitest
 ```
 
 `.env` is gitignored. Copy `.env.example` and set `DB_PASSWORD` before anything else.
+
+### Phase 5 outcome and deviations from plan
+
+Coverage 48.5 to **54.0 percent line and 44.3 branch**. `com.rex.audit` 93.8, `com.rex.rollout`
+88.9. CI grew to **fourteen checks** with a rollout and audit job.
+
+Findings:
+
+1. **The guardrail window had to move from a trailing period to the stage lifetime.** A fixed
+   trailing window meant simulating time to test dwell also pushed the measurement window past the
+   data being measured, which surfaced as three failing tests. Measuring from stage entry is also
+   the more correct design: a trailing window drags in behaviour from an earlier, smaller
+   percentage and dilutes the signal.
+2. **ArchUnit caught the same layering violation twice**, in Phase 4 and again here, both times a
+   service returning an API DTO. Worth watching for in Phase 6 and 8.
+3. **The audit listener and the broadcast listener need opposite transaction semantics.** Audit
+   joins the caller's transaction so a row cannot outlive a rolled back change; broadcast fires
+   after commit so clients are never told about a change that did not happen.
+4. **Spotless reformats a method signature between edits**, so a second replacement keyed on the
+   original formatting silently misses. This cost one debugging round here and once before.
+
+No deviations from the plan's intent. The migration numbering held: V5 rollout schedules, V6
+audit log, leaving V7 for the demo seed.
 
 ### Phase 4 outcome and deviations from plan
 
