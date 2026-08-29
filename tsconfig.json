@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "sdk/**/*.ts",
+    "frontend/**/*.ts",
+    "frontend/**/*.tsx",
+    "*.config.ts",
+    "*.config.mts"
+  ],
+  "exclude": ["**/node_modules", "**/dist", "**/.next"]
+}
