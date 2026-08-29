@@ -2,11 +2,13 @@ package com.rex.api;
 
 import com.rex.api.dto.AssignmentRequest;
 import com.rex.api.dto.AssignmentResponse;
+import com.rex.api.dto.ExperimentAnalysisResponse;
 import com.rex.api.dto.ExperimentRequest;
 import com.rex.api.dto.ExperimentResponse;
 import com.rex.api.mapper.ExperimentMapper;
 import com.rex.exception.ResourceNotFoundException;
 import com.rex.model.Experiment;
+import com.rex.service.ExperimentAnalysisService;
 import com.rex.service.ExperimentService;
 import jakarta.validation.Valid;
 import java.net.URI;
@@ -27,11 +29,27 @@ import org.springframework.web.bind.annotation.RestController;
 public class ExperimentController {
 
   private final ExperimentService experimentService;
+  private final ExperimentAnalysisService analysisService;
   private final ExperimentMapper mapper;
 
-  public ExperimentController(ExperimentService experimentService, ExperimentMapper mapper) {
+  public ExperimentController(
+      ExperimentService experimentService,
+      ExperimentAnalysisService analysisService,
+      ExperimentMapper mapper) {
     this.experimentService = experimentService;
+    this.analysisService = analysisService;
     this.mapper = mapper;
+  }
+
+  /**
+   * The statistical result.
+   *
+   * <p>Reports inconclusive when the sample is short, regardless of how small the p-value looks.
+   */
+  @GetMapping("/{id}/analysis")
+  public ExperimentAnalysisResponse analysis(@PathVariable Long id) {
+    Experiment experiment = requireExperiment(id);
+    return mapper.toAnalysisResponse(experiment, analysisService.analyse(experiment));
   }
 
   @GetMapping

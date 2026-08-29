@@ -34,6 +34,7 @@ class OpenApiDocumentationTest extends PostgresIntegrationTest {
         "/api/v1/experiments",
         "/api/v1/experiments/{id}",
         "/api/v1/experiments/{id}/start",
+        "/api/v1/experiments/{id}/analysis",
         "/api/v1/experiments/{id}/assignments",
         "/api/v1/evaluate",
         "/api/v1/evaluate/{flagName}",

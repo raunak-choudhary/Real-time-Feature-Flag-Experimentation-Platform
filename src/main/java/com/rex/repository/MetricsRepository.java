@@ -228,4 +228,20 @@ public interface MetricsRepository extends JpaRepository<Metrics, Long> {
         """)
   List<Metrics> findHighValueEvents(
       @Param("minValue") Double minValue, @Param("sinceDate") LocalDateTime sinceDate);
+
+  /** Counts events of one type for one variant of an experiment. */
+  @Query(
+      "select count(m) from Metrics m where m.experiment.id = :experimentId"
+          + " and m.variantName = :variantName and m.eventType = :eventType")
+  long countByExperimentVariantAndType(
+      @Param("experimentId") Long experimentId,
+      @Param("variantName") String variantName,
+      @Param("eventType") Metrics.EventType eventType);
+
+  /** Distinct users exposed to one variant, which is the denominator a conversion rate needs. */
+  @Query(
+      "select count(distinct m.userId) from Metrics m where m.experiment.id = :experimentId"
+          + " and m.variantName = :variantName")
+  long countDistinctUsersByExperimentAndVariant(
+      @Param("experimentId") Long experimentId, @Param("variantName") String variantName);
 }

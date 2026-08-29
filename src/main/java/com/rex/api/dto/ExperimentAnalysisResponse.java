@@ -1,0 +1,32 @@
+package com.rex.api.dto;
+
+/** Statistical result for one experiment, shaped for a dashboard rather than for a statistician. */
+public record ExperimentAnalysisResponse(
+    Long experimentId,
+    String experimentName,
+    String controlVariant,
+    String testVariant,
+    long controlExposures,
+    long controlConversions,
+    double controlRate,
+    Double controlLower,
+    Double controlUpper,
+    long testExposures,
+    long testConversions,
+    double testRate,
+    Double testLower,
+    Double testUpper,
+    double absoluteLift,
+    double relativeLift,
+    double zScore,
+    double pValue,
+    boolean significant,
+    double confidenceLevel,
+    long currentPerVariant,
+    long requiredPerVariant,
+    long remainingPerVariant,
+    double progress,
+    boolean readyToConclude,
+    boolean canDeclareWinner,
+    String verdict,
+    String summary) {}
