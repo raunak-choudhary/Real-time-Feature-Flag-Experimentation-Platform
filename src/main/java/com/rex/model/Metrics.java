@@ -12,13 +12,13 @@ import java.util.Objects;
 @Entity
 @Table(name = "metrics",
         indexes = {
-                @Index(name = "idx_user_id", columnList = "user_id"),
-                @Index(name = "idx_feature_flag_id", columnList = "feature_flag_id"),
-                @Index(name = "idx_experiment_id", columnList = "experiment_id"),
-                @Index(name = "idx_event_type", columnList = "event_type"),
-                @Index(name = "idx_timestamp", columnList = "timestamp"),
-                @Index(name = "idx_user_experiment", columnList = "user_id, experiment_id"),
-                @Index(name = "idx_user_flag", columnList = "user_id, feature_flag_id")
+                @Index(name = "idx_metrics_user_id", columnList = "user_id"),
+                @Index(name = "idx_metrics_feature_flag_id", columnList = "feature_flag_id"),
+                @Index(name = "idx_metrics_experiment_id", columnList = "experiment_id"),
+                @Index(name = "idx_metrics_event_type", columnList = "event_type"),
+                @Index(name = "idx_metrics_timestamp", columnList = "timestamp"),
+                @Index(name = "idx_metrics_user_experiment", columnList = "user_id, experiment_id"),
+                @Index(name = "idx_metrics_user_flag", columnList = "user_id, feature_flag_id")
         })
 public class Metrics {
 

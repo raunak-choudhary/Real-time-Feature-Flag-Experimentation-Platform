@@ -12,9 +12,9 @@ import java.util.Objects;
 @Entity
 @Table(name = "user_cohorts",
         indexes = {
-                @Index(name = "idx_user_id", columnList = "user_id"),
-                @Index(name = "idx_experiment_id", columnList = "experiment_id"),
-                @Index(name = "idx_user_experiment", columnList = "user_id, experiment_id")
+                @Index(name = "idx_user_cohorts_user_id", columnList = "user_id"),
+                @Index(name = "idx_user_cohorts_experiment_id", columnList = "experiment_id"),
+                @Index(name = "idx_user_cohorts_user_experiment", columnList = "user_id, experiment_id")
         })
 public class UserCohort {
 

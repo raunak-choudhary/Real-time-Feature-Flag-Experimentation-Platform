@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rex-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-rexdb}
+      POSTGRES_USER: ${DB_USER:-rex_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - rex-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-rex_user} -d ${DB_NAME:-rexdb}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  rex-pgdata:
