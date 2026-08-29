@@ -104,6 +104,14 @@ public class Metrics {
   @Size(max = 50, message = "Device type cannot exceed 50 characters")
   private String deviceType;
 
+  /** Whether the user was served the flag on or off. Null for events that are not exposures. */
+  @Column(name = "served_decision")
+  private Boolean servedDecision;
+
+  /** The rollout percentage in force when the exposure was recorded. */
+  @Column(name = "rollout_at_exposure")
+  private Integer rolloutAtExposure;
+
   @Column(name = "platform")
   @Size(max = 50, message = "Platform cannot exceed 50 characters")
   private String platform;
@@ -465,5 +473,21 @@ public class Metrics {
         + environment
         + '\''
         + '}';
+  }
+
+  public Boolean getServedDecision() {
+    return servedDecision;
+  }
+
+  public void setServedDecision(Boolean servedDecision) {
+    this.servedDecision = servedDecision;
+  }
+
+  public Integer getRolloutAtExposure() {
+    return rolloutAtExposure;
+  }
+
+  public void setRolloutAtExposure(Integer rolloutAtExposure) {
+    this.rolloutAtExposure = rolloutAtExposure;
   }
 }

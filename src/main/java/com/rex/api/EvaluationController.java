@@ -3,6 +3,7 @@ package com.rex.api;
 import com.rex.api.dto.EvaluationResponse;
 import com.rex.model.FeatureFlag;
 import com.rex.service.FeatureFlagService;
+import com.rex.telemetry.ExposureRecorder;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,9 +25,11 @@ public class EvaluationController {
   private static final String DEFAULT_ENVIRONMENT = "development";
 
   private final FeatureFlagService flagService;
+  private final ExposureRecorder exposureRecorder;
 
-  public EvaluationController(FeatureFlagService flagService) {
+  public EvaluationController(FeatureFlagService flagService, ExposureRecorder exposureRecorder) {
     this.flagService = flagService;
+    this.exposureRecorder = exposureRecorder;
   }
 
   @GetMapping("/{flagName}")
@@ -68,6 +71,7 @@ public class EvaluationController {
     }
 
     boolean enabled = flagService.isFlagEnabledForUser(flagName, userId, environment);
+    exposureRecorder.recordFlagExposure(flag, userId, enabled, environment);
     return new EvaluationResponse(
         flagName,
         enabled,
