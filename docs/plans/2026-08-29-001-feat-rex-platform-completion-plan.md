@@ -124,6 +124,14 @@ should say so.
 
 ## Key Technical Decisions
 
+- **Colima as the container runtime locally, never Docker Desktop.** The machine already runs
+  Colima 0.9.1 with the Homebrew `docker` CLI and Compose v5, and Docker Desktop is not installed.
+  Testcontainers does not always resolve a Colima socket on its own, so the repository commits the
+  two environment variables it needs rather than leaving each developer to rediscover them:
+  `DOCKER_HOST` pointing at the Colima socket, and `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` set to
+  `/var/run/docker.sock` so the Ryuk reaper container mounts the path it expects inside the VM.
+  Verified before planning closed: `postgres:16-alpine` reaches ready in about three seconds on
+  this profile (4 CPU, 6 GiB).
 - **Postgres in production and integration tests, H2 nowhere.** H2 in MySQL compatibility mode
   hides dialect bugs. Testcontainers gives a real Postgres per test run. Removing H2 also removes
   the `create-drop` schema strategy.
@@ -263,7 +271,10 @@ assign(experimentKey, userId) is
   for containerised runs, and local `./mvnw spring-boot:run` uses the `spring-dotenv` dependency so
   both paths resolve the same variables. Without this the rule that secrets live only in `.env`
   cannot actually be satisfied for local development.
-- `docker-compose.yml` provides Postgres for local development.
+- `docker-compose.yml` provides Postgres for local development, started with `colima start`
+  followed by `docker compose up`. No Docker Desktop anywhere in the workflow.
+- A `.env.example` entry documents the Colima socket path, and the README records the two
+  Testcontainers variables so a fresh clone does not fail with an unhelpful socket error.
 
 **Test scenarios:**
 - Integration: application context starts against a Testcontainers Postgres with `ddl-auto=validate`, proving the migration matches the entities.
@@ -963,6 +974,7 @@ a connected client in production, README complete with measured figures.
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
 | Testcontainers unavailable on the CI runner | Low | High | GitHub-hosted runners ship Docker; a Postgres service container is the fallback |
+| Testcontainers cannot find the Colima socket locally | Medium | Medium | `DOCKER_HOST` and `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` committed and documented; CI is unaffected since runners use the standard socket |
 | Flyway baseline drifts from entities | Medium | High | `ddl-auto=validate` fails startup on any mismatch, caught by the Phase 0 context test |
 | Latency test flakes under CI contention | Medium | Medium | Assert a p95 ceiling rather than a mean, with a generous threshold and a documented local figure |
 | Statistical implementation subtly wrong | Medium | High | Verify against published worked examples rather than self-consistency |
