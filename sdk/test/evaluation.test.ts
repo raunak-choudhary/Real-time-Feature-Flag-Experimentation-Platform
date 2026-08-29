@@ -3,8 +3,8 @@ import { isFlagOn } from "../src/evaluation.js";
 import type { EvaluationResult } from "../src/types.js";
 
 const results: readonly EvaluationResult[] = [
-  { flagName: "dark_mode", enabled: true, reason: "ROLLOUT_INCLUDED" },
-  { flagName: "new_checkout_flow", enabled: false, reason: "FLAG_DISABLED" },
+  { flagName: "dark_mode", enabled: true, reason: "ROLLOUT_INCLUDED", bucket: 1234 },
+  { flagName: "new_checkout_flow", enabled: false, reason: "FLAG_DISABLED", bucket: null },
 ];
 
 describe("isFlagOn", () => {
