@@ -265,7 +265,8 @@ assign(experimentKey, userId) is
   Hibernate DDL, not Flyway, so keeping it alongside migrations produces a startup race. Its
   contents move into `V2__reference_seed.sql`, and the larger demo dataset arrives later as `V6`.
 - Migration numbering is reserved up front so phases cannot collide: V1 baseline, V2 reference
-  seed, V3 targeting rules, V4 rollout schedules, V5 audit log, V6 demo seed.
+  seed, V3 exposure decision columns, V4 targeting rules, V5 rollout schedules, V6 audit log,
+  V7 demo seed. (V3 was assigned during Phase 1; everything after it shifted up by one.)
 - Datasource credentials read from environment with no defaults committed.
 - **Spring Boot does not read `.env` files natively.** Docker Compose loads `.env` automatically
   for containerised runs, and local `./mvnw spring-boot:run` uses the `spring-dotenv` dependency so
@@ -370,7 +371,7 @@ gate enforced. No credential in source.
 
 ### Phase 1: REST API and Contract
 
-- [ ] **Unit 1.1: DTO layer and validation**
+- [x] **Unit 1.1: DTO layer and validation**
 
 **Goal:** A request and response vocabulary independent of the persistence model.
 
@@ -391,7 +392,7 @@ gate enforced. No credential in source.
 - Edge case: rollout percentage of exactly 0 and exactly 100 are accepted; 101 and -1 are rejected.
 - Edge case: a null description maps without error, since the column is nullable.
 
-- [ ] **Unit 1.2: Controllers and error contract**
+- [x] **Unit 1.2: Controllers and error contract**
 
 **Goal:** Reachable, versioned, consistently-failing endpoints.
 
@@ -424,7 +425,7 @@ is the thing being designed here, and tests are the cleanest way to state it.
 - Error path: a malformed body returns 400 with field-level validation messages.
 - Integration: an evaluation request for an unknown flag returns the documented default rather than failing.
 
-- [ ] **Unit 1.3: Telemetry ingestion and exposure recording**
+- [x] **Unit 1.3: Telemetry ingestion and exposure recording**
 
 **Goal:** Produce the data that Phases 4 and 5 consume. Without this unit the statistics engine and
 the guardrails have nothing to read, so it is a prerequisite rather than an enhancement.
@@ -461,7 +462,7 @@ the guardrails have nothing to read, so it is a prerequisite rather than an enha
 - Error path: a telemetry write failure is logged and does not fail the evaluation that triggered it.
 - Integration: exposures written during a rollout are queryable filtered by served decision, which is the query the guardrail evaluator depends on.
 
-- [ ] **Unit 1.4: OpenAPI documentation**
+- [x] **Unit 1.4: OpenAPI documentation**
 
 **Goal:** A browsable, accurate API reference.
 
@@ -579,7 +580,7 @@ user always sees the same variant?"
 
 **Files:**
 - Create: `src/main/java/com/rex/evaluation/TargetingRule.java`, `RuleOperator.java`, `RuleEvaluator.java`
-- Create: `src/main/resources/db/migration/V3__targeting_rules.sql`
+- Create: `src/main/resources/db/migration/V4__targeting_rules.sql`
 - Modify: `src/main/java/com/rex/model/FeatureFlag.java`, `src/main/java/com/rex/evaluation/FlagEvaluator.java`
 - Test: `src/test/java/com/rex/evaluation/RuleEvaluatorTest.java`
 
@@ -765,7 +766,7 @@ something a person would otherwise have to sit and watch.
 
 **Files:**
 - Create: `src/main/java/com/rex/rollout/RolloutSchedule.java`, `RolloutStage.java`, `RolloutScheduler.java`, `RolloutService.java`
-- Create: `src/main/resources/db/migration/V4__rollout_schedules.sql`
+- Create: `src/main/resources/db/migration/V5__rollout_schedules.sql`
 - Test: `src/test/java/com/rex/rollout/RolloutSchedulerTest.java`, `src/test/java/com/rex/rollout/RolloutServiceIntegrationTest.java`
 
 **Approach:**
@@ -832,7 +833,7 @@ something a person would otherwise have to sit and watch.
 
 **Files:**
 - Create: `src/main/java/com/rex/audit/AuditEvent.java`, `AuditService.java`, `src/main/java/com/rex/api/AuditController.java`
-- Create: `src/main/resources/db/migration/V5__audit_log.sql`
+- Create: `src/main/resources/db/migration/V6__audit_log.sql`
 - Test: `src/test/java/com/rex/audit/AuditServiceTest.java`, `src/test/java/com/rex/audit/AuditIntegrationTest.java`
 
 **Approach:**
@@ -935,7 +936,7 @@ pushed changes without reload, and shows rollout progress and the audit feed.
 
 **Dependencies:** Unit 7.1
 
-**Files:** Create `README.md`, create `src/main/resources/db/migration/V6__demo_seed.sql`
+**Files:** Create `README.md`, create `src/main/resources/db/migration/V7__demo_seed.sql`
 
 **Approach:**
 - Architecture diagram, the bucketing correctness argument, measured propagation latency, the
@@ -1005,13 +1006,13 @@ Stated so the catalogue entry can be written from verified facts rather than adj
 
 ## Current Status
 
-**Last completed: Phase 0, all four units. CI green on GitHub.**
-Resume at Phase 1, Unit 1.1.
+**Last completed: Phase 1, all four units. 76 Java tests, 4 TypeScript tests, verify green.**
+Resume at Phase 2, Unit 2.1.
 
 | Phase | State |
 |---|---|
 | 0. Foundation, gates, CI | Complete |
-| 1. REST API and contract | Not started |
+| 1. REST API and contract | Complete |
 | 2. Evaluation engine | Not started |
 | 3. Real-time and SDK | Not started |
 | 4. Statistics | Not started |
@@ -1030,6 +1031,41 @@ npm ci && npm run verify # frontend: tsc strict, type-aware ESLint, Vitest
 ```
 
 `.env` is gitignored. Copy `.env.example` and set `DB_PASSWORD` before anything else.
+
+### Phase 1 outcome and deviations from plan
+
+Coverage moved from 7.5 percent line and 0 percent branch to **40.1 and 24.7**. The floor is now
+0.38 and 0.22, a small margin below measured rather than sitting on the exact figure, which would
+fail on any trivial change.
+
+Findings during the phase:
+
+1. **`DELETE` archives rather than removes.** The service already soft deleted, which is correct
+   for a flag platform since a removed flag takes its evaluation history with it. The endpoint now
+   documents this and the test asserts the archived state. My original test expectation was wrong,
+   not the code.
+2. **Duplicate names threw `IllegalArgumentException`**, indistinguishable from a validation
+   failure, so they would have surfaced as 400. A domain exception now maps them to 409. The
+   exception types live in `com.rex.exception` so the ArchUnit layering rules still hold.
+3. **SpotBugs reported constructor injected beans as exposed internal representation.** That is a
+   false positive for Spring singletons, so the exclusion is scoped to the injection layers rather
+   than applied globally.
+4. **SpotBugs found a real defect in `PageResponse`**, which stored a caller supplied list. Fixed
+   by copying on construction and on read, with tests for both.
+5. **The service signatures take flat parameters, not entities.** The mappers' write direction was
+   therefore unused, so it was removed rather than left as dead code behind a passing test.
+
+Deviations from the plan as written:
+
+- **Migration numbering shifted.** The plan gave Unit 1.3 a column added to `V2__reference_seed`,
+  which was already taken. Telemetry columns are now `V3__exposure_decision`. **Remaining
+  reservations are therefore V4 targeting rules, V5 rollout schedules, V6 audit log, V7 demo
+  seed**, each one higher than the plan originally stated.
+- **`currentSampleSize` already increments**, through `Experiment.incrementSampleSize()`. The plan
+  listed adding it as work; it exists, and tests now prove it counts once per enrolment and does
+  not double count a returning user.
+- **Awaitility was added** for asserting asynchronous exposure writes, which the plan had not
+  anticipated.
 
 ### Phase 0 outcome and deviations from plan
 
