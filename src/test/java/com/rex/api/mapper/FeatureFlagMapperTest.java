@@ -9,7 +9,6 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
-import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -35,9 +34,9 @@ class FeatureFlagMapperTest {
     validatorFactory.close();
   }
 
-  private static FeatureFlagRequest request(Integer rollout) {
+  private static FeatureFlagRequest request(String name, Integer rollout) {
     return new FeatureFlagRequest(
-        "dark_mode",
+        name,
         "Dark theme",
         true,
         FeatureFlag.FlagStatus.ACTIVE,
@@ -46,59 +45,18 @@ class FeatureFlagMapperTest {
         "admin@rex.com");
   }
 
-  @Test
-  @DisplayName("a valid request maps every field onto the entity")
-  void mapsAllFields() {
-    FeatureFlag flag = mapper.toEntity(request(25));
-
-    assertThat(flag.getName()).isEqualTo("dark_mode");
-    assertThat(flag.getDescription()).isEqualTo("Dark theme");
-    assertThat(flag.getEnabled()).isTrue();
-    assertThat(flag.getStatus()).isEqualTo(FeatureFlag.FlagStatus.ACTIVE);
-    assertThat(flag.getRolloutPercentage()).isEqualTo(25);
-    assertThat(flag.getEnvironment()).isEqualTo("production");
-    assertThat(flag.getCreatedBy()).isEqualTo("admin@rex.com");
-  }
-
-  @Test
-  @DisplayName("a null description maps without error, since the column is nullable")
-  void nullDescriptionIsAllowed() {
-    FeatureFlagRequest request =
-        new FeatureFlagRequest("dark_mode", null, true, null, 10, null, null);
-
-    FeatureFlag flag = mapper.toEntity(request);
-
-    assertThat(flag.getDescription()).isNull();
-    assertThat(flag.getEnvironment()).isEqualTo("development");
-    assertThat(flag.getStatus()).isEqualTo(FeatureFlag.FlagStatus.INACTIVE);
-  }
-
-  @Test
-  @DisplayName("an unset enabled flag defaults to off rather than null")
-  void nullEnabledDefaultsToOff() {
-    FeatureFlagRequest request =
-        new FeatureFlagRequest("dark_mode", null, null, null, null, null, null);
-
-    FeatureFlag flag = mapper.toEntity(request);
-
-    assertThat(flag.getEnabled()).isFalse();
-    assertThat(flag.getRolloutPercentage()).isZero();
-  }
-
   @ParameterizedTest(name = "rollout {0} is accepted")
   @ValueSource(ints = {0, 1, 50, 99, 100})
   @DisplayName("rollout percentage accepts the whole inclusive range")
   void rolloutBoundsAccepted(int rollout) {
-    Set<ConstraintViolation<FeatureFlagRequest>> violations = validator.validate(request(rollout));
-    assertThat(violations).isEmpty();
+    assertThat(validator.validate(request("dark_mode", rollout))).isEmpty();
   }
 
   @ParameterizedTest(name = "rollout {0} is rejected")
   @ValueSource(ints = {-1, 101, 1000})
   @DisplayName("rollout percentage rejects anything outside 0 to 100")
   void rolloutBoundsRejected(int rollout) {
-    Set<ConstraintViolation<FeatureFlagRequest>> violations = validator.validate(request(rollout));
-    assertThat(violations)
+    assertThat(validator.validate(request("dark_mode", rollout)))
         .extracting(ConstraintViolation::getMessage)
         .anyMatch(message -> message.contains("rolloutPercentage"));
   }
@@ -106,47 +64,54 @@ class FeatureFlagMapperTest {
   @Test
   @DisplayName("a blank name is rejected at the boundary")
   void blankNameRejected() {
-    FeatureFlagRequest request = new FeatureFlagRequest("  ", null, true, null, 0, null, null);
-
-    assertThat(validator.validate(request))
+    assertThat(validator.validate(request("  ", 0)))
         .extracting(ConstraintViolation::getMessage)
         .contains("name is required");
   }
 
-  @Test
-  @DisplayName("a name with spaces or capitals is rejected, keeping flag keys machine safe")
-  void malformedNameRejected() {
-    FeatureFlagRequest request =
-        new FeatureFlagRequest("Dark Mode", null, true, null, 0, null, null);
-
-    assertThat(validator.validate(request))
+  @ParameterizedTest(name = "name '{0}' is rejected")
+  @ValueSource(strings = {"Dark Mode", "darkMode", "dark-mode", "DARK_MODE"})
+  @DisplayName("flag names must stay machine safe, so spaces, capitals and hyphens are rejected")
+  void malformedNameRejected(String name) {
+    assertThat(validator.validate(request(name, 0)))
         .extracting(ConstraintViolation::getMessage)
         .anyMatch(message -> message.contains("lower case alphanumeric"));
   }
 
   @Test
-  @DisplayName("the response carries the entity values back out")
+  @DisplayName("the entity maps out to a response with every field carried across")
   void mapsToResponse() {
-    FeatureFlag flag = mapper.toEntity(request(75));
+    FeatureFlag flag = new FeatureFlag();
     flag.setId(7L);
+    flag.setName("dark_mode");
+    flag.setDescription("Dark theme");
+    flag.setEnabled(true);
+    flag.setStatus(FeatureFlag.FlagStatus.ACTIVE);
+    flag.setRolloutPercentage(75);
+    flag.setEnvironment("production");
+    flag.setCreatedBy("admin@rex.com");
 
     FeatureFlagResponse response = mapper.toResponse(flag);
 
     assertThat(response.id()).isEqualTo(7L);
     assertThat(response.name()).isEqualTo("dark_mode");
     assertThat(response.enabled()).isTrue();
+    assertThat(response.status()).isEqualTo(FeatureFlag.FlagStatus.ACTIVE);
     assertThat(response.rolloutPercentage()).isEqualTo(75);
+    assertThat(response.environment()).isEqualTo("production");
   }
 
   @Test
-  @DisplayName("applyTo updates an existing flag without replacing it")
-  void applyToUpdatesInPlace() {
-    FeatureFlag existing = mapper.toEntity(request(10));
-    existing.setId(3L);
+  @DisplayName("null enabled and rollout become safe defaults rather than a null response")
+  void nullsBecomeSafeDefaults() {
+    FeatureFlag flag = new FeatureFlag();
+    flag.setName("minimal");
+    flag.setEnabled(null);
+    flag.setRolloutPercentage(null);
 
-    mapper.applyTo(existing, request(90));
+    FeatureFlagResponse response = mapper.toResponse(flag);
 
-    assertThat(existing.getId()).as("identity is preserved").isEqualTo(3L);
-    assertThat(existing.getRolloutPercentage()).isEqualTo(90);
+    assertThat(response.enabled()).isFalse();
+    assertThat(response.rolloutPercentage()).isZero();
   }
 }

@@ -1,5 +1,6 @@
 package com.rex.service;
 
+import com.rex.exception.DuplicateResourceException;
 import com.rex.model.Experiment;
 import com.rex.model.UserCohort;
 import com.rex.repository.ExperimentRepository;
@@ -61,7 +62,7 @@ public class ExperimentService {
 
     // Check for duplicate names
     if (experimentRepository.existsByName(name)) {
-      throw new IllegalArgumentException(
+      throw new DuplicateResourceException(
           String.format("Experiment with name '%s' already exists", name));
     }
 

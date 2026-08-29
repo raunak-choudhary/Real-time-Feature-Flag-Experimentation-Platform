@@ -6,6 +6,20 @@
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
 
+  <!--
+    Constructor injected Spring beans. SpotBugs sees a caller supplied object being stored and
+    reports EI_EXPOSE_REP2, but the container owns these singletons and no caller holds a
+    reference to mutate. This is the standard injection pattern rather than shared mutable state,
+    so the exclusion is scoped to the layers where injection happens rather than applied globally.
+  -->
+  <Match>
+    <Package name="~com\.rex\.(api|service|config|realtime|rollout|audit|telemetry)"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    <Or>
+      <Method name="&lt;init&gt;"/>
+    </Or>
+  </Match>
+
   <!-- Spring injects these fields, so SpotBugs cannot see them being written. -->
   <Match>
     <Bug pattern="UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"/>

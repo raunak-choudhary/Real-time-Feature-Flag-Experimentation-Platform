@@ -1,5 +1,6 @@
 package com.rex.service;
 
+import com.rex.exception.DuplicateResourceException;
 import com.rex.model.FeatureFlag;
 import com.rex.repository.FeatureFlagRepository;
 import java.time.LocalDateTime;
@@ -48,7 +49,7 @@ public class FeatureFlagService {
 
     // Check for duplicate names in same environment
     if (existsByNameAndEnvironment(name, environment)) {
-      throw new IllegalArgumentException(
+      throw new DuplicateResourceException(
           String.format(
               "Feature flag with name '%s' already exists in environment '%s'", name, environment));
     }
@@ -83,7 +84,7 @@ public class FeatureFlagService {
     validateRolloutPercentage(rolloutPercentage);
 
     if (existsByNameAndEnvironment(name, environment)) {
-      throw new IllegalArgumentException(
+      throw new DuplicateResourceException(
           String.format(
               "Feature flag with name '%s' already exists in environment '%s'", name, environment));
     }
@@ -158,7 +159,7 @@ public class FeatureFlagService {
 
     // Check for name conflicts (if name is being changed)
     if (!flag.getName().equals(name) && existsByNameAndEnvironment(name, environment)) {
-      throw new IllegalArgumentException(
+      throw new DuplicateResourceException(
           String.format(
               "Feature flag with name '%s' already exists in environment '%s'", name, environment));
     }
