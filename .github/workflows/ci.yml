@@ -106,6 +106,50 @@ jobs:
           path: target/site/jacoco/
           retention-days: 14
 
+  realtime:
+    name: Real-time (WebSocket end to end)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      # The toggle to client path crosses the service layer, the event bus, the transaction
+      # boundary, the broker and the socket. Unit tests cannot prove it, so it gets its own check.
+      - name: Verify push propagation
+        run: ./mvnw -B --no-transfer-progress test -Dtest=WebSocketIntegrationTest -DfailIfNoSpecifiedTests=false
+
+  sdk-build:
+    name: SDK builds and typechecks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # The dashboard imports the SDK by package name, so a broken SDK build breaks the dashboard.
+      - name: Typecheck the SDK in isolation
+        run: npx tsc --noEmit -p tsconfig.json
+
+  performance:
+    name: Propagation latency (non blocking)
+    runs-on: ubuntu-latest
+    # Timing on a shared runner is noisy. This reports a number without gating the merge.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      - name: Measure toggle to client latency
+        run: ./mvnw -B --no-transfer-progress test -Pperformance
+
   typecheck-frontend:
     name: Typecheck (tsc strict)
     runs-on: ubuntu-latest

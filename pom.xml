@@ -135,6 +135,24 @@
     </dependency>
   </dependencies>
 
+  <profiles>
+    <profile>
+      <id>performance</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <excludedGroups combine.self="override"/>
+              <groups>performance</groups>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
   <build>
     <plugins>
       <plugin>
@@ -272,6 +290,18 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!--
+            Timing assertions are excluded from the standard gate. A shared runner under
+            contention makes them flaky, and a build that goes red for reasons unrelated to the
+            change teaches people to ignore the build. Run them with -Pperformance.
+          -->
+          <excludedGroups>performance</excludedGroups>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.springframework.boot</groupId>
