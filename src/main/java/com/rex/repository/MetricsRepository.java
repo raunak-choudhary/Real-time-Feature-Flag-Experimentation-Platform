@@ -274,4 +274,11 @@ public interface MetricsRepository extends JpaRepository<Metrics, Long> {
       @Param("flagId") Long flagId,
       @Param("eventType") Metrics.EventType eventType,
       @Param("since") java.time.LocalDateTime since);
+
+  /** When a flag was last evaluated, or null if it never has been. */
+  @Query(
+      "select max(m.timestamp) from Metrics m where m.featureFlag.id = :flagId"
+          + " and m.eventType = :eventType")
+  java.time.LocalDateTime findLastEventTimestamp(
+      @Param("flagId") Long flagId, @Param("eventType") Metrics.EventType eventType);
 }

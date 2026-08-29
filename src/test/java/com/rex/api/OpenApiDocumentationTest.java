@@ -38,7 +38,10 @@ class OpenApiDocumentationTest extends PostgresIntegrationTest {
         "/api/v1/experiments/{id}/assignments",
         "/api/v1/evaluate",
         "/api/v1/evaluate/{flagName}",
-        "/api/v1/telemetry/conversions"
+        "/api/v1/telemetry/conversions",
+        "/api/v1/audit",
+        "/api/v1/audit/flags/{flagId}",
+        "/api/v1/audit/stale-flags"
       })
   @DisplayName("every route appears in the generated OpenAPI document")
   void routeIsDocumented(String path) throws Exception {

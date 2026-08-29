@@ -1,5 +1,6 @@
 package com.rex.rollout;
 
+import com.rex.audit.AuditService;
 import com.rex.event.FlagChangedEvent;
 import com.rex.exception.DuplicateResourceException;
 import com.rex.exception.InvalidStateTransitionException;
@@ -32,16 +33,19 @@ public class RolloutService {
   private final FeatureFlagRepository flagRepository;
   private final ChangePublisher changePublisher;
   private final GuardrailEvaluator guardrailEvaluator;
+  private final AuditService auditService;
 
   public RolloutService(
       RolloutScheduleRepository scheduleRepository,
       FeatureFlagRepository flagRepository,
       ChangePublisher changePublisher,
-      GuardrailEvaluator guardrailEvaluator) {
+      GuardrailEvaluator guardrailEvaluator,
+      AuditService auditService) {
     this.scheduleRepository = scheduleRepository;
     this.flagRepository = flagRepository;
     this.changePublisher = changePublisher;
     this.guardrailEvaluator = guardrailEvaluator;
+    this.auditService = auditService;
   }
 
   /**
@@ -168,12 +172,22 @@ public class RolloutService {
   public RolloutSchedule rollBack(RolloutSchedule schedule, String reason, LocalDateTime now) {
     FeatureFlag flag = schedule.getFeatureFlag();
     int safePercentage = schedule.getLastSafePercentage();
+    int previousPercentage = flag.getRolloutPercentage() != null ? flag.getRolloutPercentage() : 0;
 
     flag.setRolloutPercentage(safePercentage);
     flagRepository.save(flag);
 
     schedule.rollBack(reason, now);
     RolloutSchedule saved = scheduleRepository.save(schedule);
+
+    // Attributed to the scheduler rather than a user, so an automatic rollback is traceable.
+    auditService.recordAutomated(
+        "ROLLED_BACK",
+        flag.getId(),
+        flag.getName(),
+        "rollout=" + previousPercentage + "%",
+        "rollout=" + safePercentage + "%",
+        reason);
 
     logger.warn(
         "Rollout {} rolled back to {}% for flag '{}': {}",
