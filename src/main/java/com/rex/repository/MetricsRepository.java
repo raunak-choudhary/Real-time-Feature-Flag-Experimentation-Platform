@@ -100,34 +100,37 @@ public interface MetricsRepository extends JpaRepository<Metrics, Long> {
   List<Object[]> getConversionFunnel(@Param("experimentId") Long experimentId);
 
   /**
-   * Get hourly metrics for dashboard charts. H2-compatible version using FORMATDATETIME function.
+   * Get hourly metrics for dashboard charts.
+   *
+   * <p>Uses the portable format function rather than a vendor one. The previous version called
+   * FORMATDATETIME, which exists only in H2, so this query threw on Postgres.
    */
   @Query(
       """
-        SELECT FORMATDATETIME(m.timestamp, 'yyyy-MM-dd HH') as hour,
+        SELECT FORMAT(m.timestamp AS 'yyyy-MM-dd HH') as hour,
                COUNT(*) as eventCount,
                COUNT(DISTINCT m.userId) as uniqueUsers
         FROM Metrics m
         WHERE m.timestamp >= :startDate
         AND m.environment = :environment
-        GROUP BY FORMATDATETIME(m.timestamp, 'yyyy-MM-dd HH')
-        ORDER BY FORMATDATETIME(m.timestamp, 'yyyy-MM-dd HH') DESC
+        GROUP BY FORMAT(m.timestamp AS 'yyyy-MM-dd HH')
+        ORDER BY FORMAT(m.timestamp AS 'yyyy-MM-dd HH') DESC
         """)
   List<Object[]> getHourlyMetrics(
       @Param("startDate") LocalDateTime startDate, @Param("environment") String environment);
 
-  /** Get daily metrics aggregation. H2-compatible version using FORMATDATETIME function. */
+  /** Get daily metrics aggregation. See the note on hourly metrics about vendor functions. */
   @Query(
       """
-        SELECT FORMATDATETIME(m.timestamp, 'yyyy-MM-dd') as day,
+        SELECT FORMAT(m.timestamp AS 'yyyy-MM-dd') as day,
                m.eventType,
                COUNT(*) as eventCount,
                COUNT(DISTINCT m.userId) as uniqueUsers,
                AVG(m.eventValue) as avgValue
         FROM Metrics m
         WHERE m.timestamp >= :startDate
-        GROUP BY FORMATDATETIME(m.timestamp, 'yyyy-MM-dd'), m.eventType
-        ORDER BY FORMATDATETIME(m.timestamp, 'yyyy-MM-dd') DESC, m.eventType
+        GROUP BY FORMAT(m.timestamp AS 'yyyy-MM-dd'), m.eventType
+        ORDER BY FORMAT(m.timestamp AS 'yyyy-MM-dd') DESC, m.eventType
         """)
   List<Object[]> getDailyMetrics(@Param("startDate") LocalDateTime startDate);
 
