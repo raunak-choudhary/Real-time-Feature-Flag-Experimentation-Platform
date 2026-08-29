@@ -1,6 +1,9 @@
 package com.rex.api;
 
 import com.rex.api.dto.EvaluationResponse;
+import com.rex.evaluation.EvaluationResult;
+import com.rex.evaluation.FlagContext;
+import com.rex.evaluation.FlagEvaluator;
 import com.rex.model.FeatureFlag;
 import com.rex.service.FeatureFlagService;
 import com.rex.telemetry.ExposureRecorder;
@@ -61,23 +64,20 @@ public class EvaluationController {
   private EvaluationResponse decide(
       FeatureFlag flag, String flagName, String userId, String environment) {
 
-    if (!Boolean.TRUE.equals(flag.getEnabled())) {
-      return new EvaluationResponse(
-          flagName, false, EvaluationResponse.EvaluationReason.FLAG_DISABLED, null);
-    }
-    if (!environment.equals(flag.getEnvironment())) {
-      return new EvaluationResponse(
-          flagName, false, EvaluationResponse.EvaluationReason.ENVIRONMENT_MISMATCH, null);
-    }
+    FlagContext context =
+        new FlagContext(
+            flag.getName(),
+            Boolean.TRUE.equals(flag.getEnabled()),
+            flag.getEnvironment(),
+            flag.getRolloutPercentage() != null ? flag.getRolloutPercentage() : 0);
 
-    boolean enabled = flagService.isFlagEnabledForUser(flagName, userId, environment);
-    exposureRecorder.recordFlagExposure(flag, userId, enabled, environment);
+    EvaluationResult result = FlagEvaluator.evaluate(context, userId, environment);
+    exposureRecorder.recordFlagExposure(flag, userId, result.enabled(), environment);
+
     return new EvaluationResponse(
         flagName,
-        enabled,
-        enabled
-            ? EvaluationResponse.EvaluationReason.ROLLOUT_INCLUDED
-            : EvaluationResponse.EvaluationReason.ROLLOUT_EXCLUDED,
-        null);
+        result.enabled(),
+        EvaluationResponse.EvaluationReason.valueOf(result.reason().name()),
+        result.bucket());
   }
 }
