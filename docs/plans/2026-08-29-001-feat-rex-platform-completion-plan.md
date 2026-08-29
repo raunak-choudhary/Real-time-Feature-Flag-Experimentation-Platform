@@ -859,7 +859,7 @@ including the automated ones appears in the audit trail.
 
 ### Phase 6: Operator Dashboard
 
-- [ ] **Unit 6.1: Operator dashboard**
+- [x] **Unit 6.1: Operator dashboard**
 
 **Goal:** A live console proving the whole system works.
 
@@ -1006,8 +1006,8 @@ Stated so the catalogue entry can be written from verified facts rather than adj
 
 ## Current Status
 
-**Last completed: Phase 5, all three units. 230 Java tests, 20 TypeScript tests, verify green.**
-Resume at Phase 6, Unit 6.1.
+**Last completed: Phase 6. 230 Java tests, 44 TypeScript tests, verify green.**
+Resume at Phase 7, Unit 7.1.
 
 Measured propagation latency, Colima with four cores: **p50 4ms, p95 6ms, max 88ms** over 50
 trials. Quote the p95 figure and say where it was measured.
@@ -1020,7 +1020,7 @@ trials. Quote the p95 figure and say where it was measured.
 | 3. Real-time and SDK | Complete |
 | 4. Statistics | Complete |
 | 5. Rollout automation and audit | Complete |
-| 6. Dashboard | Not started |
+| 6. Dashboard | Complete |
 | 7. Deployment | Not started |
 | 8. Legacy service coverage | Not started |
 
@@ -1033,9 +1033,29 @@ set -a; . ./.env; set +a
 ./mvnw -B clean verify  # backend: Spotless, Checkstyle, tests, SpotBugs, JaCoCo floor
                         # always `clean`, or jacoco.exec accumulates and inflates coverage
 npm ci && npm run verify # frontend: tsc strict, type-aware ESLint, Vitest
+npm run build --workspace @rex/dashboard  # the dashboard build is its own gate
 ```
 
 `.env` is gitignored. Copy `.env.example` and set `DB_PASSWORD` before anything else.
+
+### Phase 6 outcome and deviations from plan
+
+TypeScript tests 20 to **44**. CI grew to **fifteen checks** with a dashboard build job. Java
+coverage is unchanged at 54.0, as expected for a phase that adds no Java.
+
+Findings, all three about tooling rather than design:
+
+1. **Next generated `frontend/tsconfig.json` with `strict: false`**, which silently downgraded the
+   type gate for every dashboard file. ESLint surfaced it as "this rule requires strictNullChecks".
+   The file now extends the strict base. Worth re-checking after any `next build` that rewrites it.
+2. **Next does not follow the `.js` extension convention** for local imports the way pure ESM
+   does. Frontend imports are extensionless, and the SDK's are too, since it ships TypeScript
+   source and therefore already requires a bundler.
+3. **Vitest needs its own JSX transform** (`esbuild: { jsx: "automatic" }`), because the tsconfig
+   keeps `jsx: "preserve"` for the Next build.
+
+A CI check for the production build was added because **typecheck and lint both passed on source
+Next refused to build**, so neither gate would have caught it before deployment.
 
 ### Phase 5 outcome and deviations from plan
 
