@@ -139,9 +139,17 @@ should say so.
   properties testable and is the same separation that made `logic/` testable in `suicide_squad`.
 - **DTOs at the boundary.** Controllers never serialise JPA entities. Prevents lazy-loading leaks
   and accidental schema exposure through the API.
-- **Frontend as a separate static app.** Vanilla TypeScript with Vite, configured by
-  `VITE_API_URL` and `VITE_WS_URL`, deployable independently. Satisfies the decoupling rule and
-  makes the SDK dogfood itself, since the dashboard consumes the same SDK an external client would.
+- **Frontend as a separate Next.js app.** Next.js 16 with the App Router and React 19, configured
+  by `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_WS_URL`, deployed independently to Vercel. Satisfies the
+  decoupling rule and makes the SDK dogfood itself, since the dashboard consumes the same SDK an
+  external client would.
+- **Server components fetch the initial flag state, client components own the live updates.** This
+  is a real use of server rendering rather than decoration: the first paint carries real flag data
+  from the server, then the socket takes over for every subsequent change. The alternative, a
+  client-only app, shows an empty table until the first fetch resolves.
+- **The SDK stays framework-agnostic.** It ships as plain TypeScript with no React dependency, so
+  it works in a plain browser page, a Node service, or any framework. The dashboard wraps it in a
+  React hook rather than the SDK knowing React exists.
 - **Quality gates mirror the Python toolchain used in `Slackops`, translated per language.**
   Java: Error Prone with NullAway in place of `mypy --strict`, Spotless and Checkstyle in place of
   `ruff`, JUnit 5 with AssertJ in place of `pytest`, JaCoCo for coverage. TypeScript: `tsc --strict`
@@ -302,13 +310,16 @@ assign(experimentKey, userId) is
 **Dependencies:** Unit 0.2
 
 **Files:**
-- Create: `package.json` (workspace root), `tsconfig.base.json`, `eslint.config.js`, `vitest.config.ts`
+- Create: `package.json` (workspace root), `tsconfig.base.json`, `eslint.config.mjs`, `vitest.config.ts`
 
 **Approach:**
 - `strict` plus `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`, which is the closest
   TypeScript equivalent to running `mypy` in strict mode.
-- ESLint with the type-aware ruleset, since the untyped ruleset misses the errors that matter.
+- ESLint with the type-aware ruleset plus `eslint-config-next`, since the untyped ruleset misses
+  the errors that matter and the Next.js rules catch App Router mistakes such as a hook in a server
+  component.
 - Vitest with a coverage floor matching the JaCoCo floor, so neither language becomes the soft side.
+  React Testing Library and jsdom for component tests, since the dashboard is React under Next.js.
 - **npm workspaces at the repository root covering `sdk` and `frontend`**, so the dashboard imports
   the SDK by package name rather than a relative path. This is what makes the dashboard a genuine
   consumer of the published SDK rather than a sibling reaching across directories.
@@ -844,14 +855,20 @@ including the automated ones appears in the audit trail.
 **Dependencies:** Phase 5
 
 **Files:**
-- Create: `frontend/` containing `index.html`, `src/main.ts`, `src/theme.css`, `vite.config.ts`, `.env.example`
-- Create: `frontend/src/components/FlagTable.ts`, `ExperimentPanel.ts`, `LiveIndicator.ts`, `RolloutTimeline.ts`, `AuditFeed.ts`
-- Test: `frontend/test/FlagTable.test.ts`, `frontend/test/RolloutTimeline.test.ts`
+- Create: `frontend/app/layout.tsx`, `frontend/app/page.tsx`, `frontend/app/globals.css`, `frontend/next.config.ts`, `frontend/.env.example`
+- Create: `frontend/components/FlagTable.tsx`, `ExperimentPanel.tsx`, `LiveIndicator.tsx`, `RolloutTimeline.tsx`, `AuditFeed.tsx`
+- Create: `frontend/hooks/useRexClient.ts`, `frontend/lib/serverFetch.ts`
+- Test: `frontend/test/FlagTable.test.tsx`, `frontend/test/RolloutTimeline.test.tsx`, `frontend/test/useRexClient.test.ts`
 
 **Approach:**
-- Vanilla TypeScript with Vite, consuming the SDK from Unit 3.2 so the dashboard dogfoods it.
+- Next.js App Router. `app/page.tsx` is a server component fetching the current flag and
+  experiment state so the first paint carries real data, then hands to a client component that
+  opens the socket and takes over.
+- `useRexClient` is a thin React hook over the SDK from Unit 3.2. The SDK itself stays free of any
+  React dependency, so the hook is the only React-aware code and the SDK remains usable anywhere.
 - Every colour, shadow and background as a CSS custom property, with dark and light defined from
-  the first component rather than retrofitted.
+  the first component rather than retrofitted. Theme resolves from `prefers-color-scheme` with an
+  explicit override, read before paint to avoid a flash of the wrong theme.
 - Mobile-first at 375, 768 and 1280.
 - A connection indicator showing live or reconnecting, making the WebSocket state visible instead
   of implied.
@@ -887,9 +904,13 @@ pushed changes without reload, and shows rollout progress and the audit feed.
 **Approach:**
 - Multi-stage JVM build producing a slim runtime image. Backend and managed Postgres deployed
   together on a container host.
-- Frontend deployed as a static site on Vercel, pointed at the backend through `VITE_API_URL` and
-  `VITE_WS_URL` at build time. GitHub Pages is the fallback if Vercel is unavailable, though Pages
-  cannot proxy the WebSocket origin, so Vercel is preferred.
+- Frontend deployed to Vercel, which is the first-party host for Next.js and needs no build
+  configuration beyond environment variables. `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_WS_URL` point
+  at the backend. GitHub Pages is not viable here, since it serves static files only and cannot run
+  the server components this app uses.
+- **Managed Postgres from Neon**, chosen for a free tier that does not expire and no cold-start
+  pause on the database itself. Supabase is the equivalent fallback. The application connects by
+  `DATABASE_URL` and cares about neither.
 - Deployment happens with the owner, who has the hosting accounts.
 
 **Test expectation:** none, verified by the deployed URLs responding.
