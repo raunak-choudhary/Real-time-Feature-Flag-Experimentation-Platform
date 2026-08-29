@@ -1,0 +1,22 @@
+# Vercel only builds the dashboard, so everything Java is dead weight in the upload.
+#
+# Every path is anchored with a leading slash. An unanchored "src/" matches any directory named
+# src at any depth, which silently excluded sdk/src and broke the build with a module-not-found
+# that pointed at the import rather than at the missing files.
+/target/
+/src/
+/config/
+/docs/
+/.mvn/
+/mvnw
+/mvnw.cmd
+/pom.xml
+/Dockerfile
+/.dockerignore
+/docker-compose.yml
+/.github/
+
+node_modules/
+/frontend/.next/
+/coverage/
+*.tsbuildinfo
