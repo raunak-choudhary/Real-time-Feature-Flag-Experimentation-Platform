@@ -1,2 +1,6 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
+
+# Prose, not source. Excluded so the language breakdown reflects the code.
+docs/**/*.md linguist-documentation
+*.md linguist-documentation

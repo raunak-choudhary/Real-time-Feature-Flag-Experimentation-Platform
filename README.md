@@ -7,6 +7,11 @@ reverting itself if they spike.
 
 [![CI](https://github.com/raunak-choudhary/Real-time-Feature-Flag-Experimentation-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/raunak-choudhary/Real-time-Feature-Flag-Experimentation-Platform/actions/workflows/ci.yml)
 
+**[Live dashboard](https://rex-platform-iota.vercel.app)** · **[API](https://rex-platform-api.onrender.com/swagger-ui/index.html)** · **[Documentation](docs/README.md)**
+
+The API runs on a free instance that sleeps when idle, so the first request after a quiet period
+takes about a minute to wake.
+
 ## What makes this different from a flag CRUD app
 
 Feature flag services are a crowded category. Three things here are done carefully rather than
@@ -32,7 +37,8 @@ difference between an experimentation tool and a random number generator with a 
 
 Every statistical expectation in the test suite is a hand-derived worked example. `200/1000` against
 `240/1000` gives z = 2.1592 and p = 0.0308, checked against the formula rather than against the
-implementation's own output.
+implementation's own output. The deployed instance returns the same values to full floating point
+precision on PostgreSQL 18 as the local build does on 16.
 
 ## Automated rollout with guardrails
 
@@ -49,8 +55,8 @@ Three details that stop it misfiring:
   back a healthy release.
 - **Exposed-cohort filtering**, so a pre-existing background error rate is not mistaken for the
   rollout causing harm.
-- **Unreadable metrics hold rather than allow**, so a monitoring outage cannot quietly turn a
-  guarded rollout into an unguarded one.
+- **Measurement from stage entry**, so a long dwell time cannot let a trailing window drift past
+  the evidence it was created to examine.
 
 ## Architecture
 
@@ -74,6 +80,21 @@ Dashboard (Next.js)          SDK (TypeScript)
 The evaluation and statistics engines are pure: no Spring, no repository, no clock. An ArchUnit
 test fails the build if either ever imports a framework class. That is what makes the correctness
 properties testable without a database.
+
+## Documentation
+
+The reasoning behind the design is written up separately, in explanation rather than walkthrough
+form.
+
+| Document | Subject |
+|---|---|
+| [Architecture](docs/architecture.md) | System shape, boundaries, and what crosses them |
+| [Deterministic assignment](docs/assignment.md) | How a user is placed, and why the answer never changes |
+| [Experiment analysis](docs/experiment-analysis.md) | How a difference is judged real |
+| [Progressive delivery](docs/progressive-delivery.md) | Staged rollout and automatic rollback |
+| [Real-time propagation](docs/real-time-propagation.md) | How changes reach running clients |
+| [Quality gates](docs/quality-gates.md) | What the checks are for, and what they caught |
+| [Decision log](docs/decisions/README.md) | Eight technical decisions and the alternatives rejected |
 
 ## Running it
 
@@ -99,8 +120,8 @@ npm run verify                # tsc strict, type-aware ESLint, Vitest
 ./mvnw test -Pperformance     # latency measurement, excluded from the default gate
 ```
 
-**234 backend tests, 44 frontend tests.** Sixteen independent CI checks, so a failure names what
-broke rather than reporting a generic build error:
+**332 backend tests, 49 frontend and SDK tests, 80% line coverage.** Twenty independent CI checks,
+so a failure names what broke rather than reporting a generic build error:
 
 | Backend | Frontend |
 |---|---|
@@ -111,11 +132,26 @@ broke rather than reporting a generic build error:
 | Statistics vs worked examples | |
 | WebSocket end to end | |
 | Rollout, guardrails, audit | |
+| Service layer | |
+| Broadcast contract | |
+| API status codes and errors | |
+| Portable SQL, no vendor functions | |
 | Container builds and starts | |
 
 Static analysis is Error Prone with NullAway, which is the closest Java gets to `mypy --strict`.
 Coverage floors are enforced, with a stricter per-package rule on the pure engines: they sit above
 95% line because pure functions have no excuse for gaps.
+
+Two of these checks exist because of specific bugs. The broadcast contract check exists because six
+operations changed a flag without telling connected clients, and a method that saves without
+announcing passes any test that reads the value back. The portable SQL check exists because queries
+written against an in-memory database shipped to a PostgreSQL deployment and threw there.
+
+## Deployment
+
+The dashboard runs on Vercel, the API on Render as a container, and the database on Neon. Nothing
+in the source refers to a host: the two halves find each other through environment variables, so
+either can move without touching the other.
 
 ## Deliberately not built
 
@@ -130,15 +166,21 @@ Each of these is a decision, not an oversight.
   at this volume.
 - **No Bayesian analysis.** Fixed-horizon frequentist testing only, labelled as such.
 
-## Honest limitations
-
-The service layer inherited from the original build is the least tested part of the codebase.
-Overall line coverage is 54%, and the gap is concentrated there rather than spread evenly: the
-packages written during this work sit between 87% and 96%.
-
-The latency figure is measured on one machine and is not a production SLA.
+The latency figure is measured on one machine and is not a production service level objective.
 
 ## Stack
 
-Java 17, Spring Boot 3.4, PostgreSQL 16, Flyway, STOMP over WebSocket, springdoc OpenAPI.
-TypeScript 5, Next.js 16 App Router, React 19, Vitest. Maven, npm workspaces, Docker, GitHub Actions.
+**Backend.** Java 17, Spring Boot 3.4, Spring Data JPA, Hibernate, PostgreSQL, Flyway, STOMP over
+WebSocket, springdoc OpenAPI, Maven.
+
+**Frontend and client.** TypeScript 5, Next.js 16 App Router, React 19, npm workspaces, a framework
+independent client library over STOMP.
+
+**Quality.** JUnit 5, Testcontainers, ArchUnit, JaCoCo, Spotless, Checkstyle, SpotBugs, Error Prone
+with NullAway, Vitest, React Testing Library, ESLint.
+
+**Infrastructure.** Docker, GitHub Actions, Vercel, Render, Neon.
+
+---
+
+Built by **Raunak Choudhary**.

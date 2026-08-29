@@ -48,3 +48,8 @@ build/
 ### VS Code ###
 .vscode/
 .vercel
+
+# Working notes. The development plan records the order things were built in and every
+# deviation along the way. It is a build log, not documentation, and keeping it out of the
+# repository stops it being read as though it were.
+docs/plans/
