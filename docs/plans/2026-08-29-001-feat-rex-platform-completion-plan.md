@@ -611,7 +611,7 @@ evaluation engine importing nothing from Spring.
 
 The differentiator. This is what makes the project's name honest.
 
-- [ ] **Unit 3.1: WebSocket transport and change events**
+- [x] **Unit 3.1: WebSocket transport and change events**
 
 **Goal:** Flag and experiment mutations broadcast to subscribers.
 
@@ -637,7 +637,7 @@ The differentiator. This is what makes the project's name honest.
 - Edge case: a mutation that changes nothing, toggling to the current value, publishes no event.
 - Error path: a broker send failure is logged and does not propagate into the mutation, which still commits.
 
-- [ ] **Unit 3.2: TypeScript SDK**
+- [x] **Unit 3.2: TypeScript SDK**
 
 **Goal:** A client that caches decisions locally and updates on push.
 
@@ -663,7 +663,7 @@ The differentiator. This is what makes the project's name honest.
 - Error path: the SDK serves cached values while disconnected rather than throwing.
 - Integration: after a simulated disconnect and reconnect, the cache is refetched and converges to server state.
 
-- [ ] **Unit 3.3: Propagation latency measurement**
+- [x] **Unit 3.3: Propagation latency measurement**
 
 **Goal:** A defensible number for how fast "real-time" actually is.
 
@@ -1006,15 +1006,18 @@ Stated so the catalogue entry can be written from verified facts rather than adj
 
 ## Current Status
 
-**Last completed: Phase 2, all four units. 140 Java tests, 4 TypeScript tests, verify green.**
-Resume at Phase 3, Unit 3.1.
+**Last completed: Phase 3, all three units. 143 Java tests, 20 TypeScript tests, verify green.**
+Resume at Phase 4, Unit 4.1.
+
+Measured propagation latency, Colima with four cores: **p50 4ms, p95 6ms, max 88ms** over 50
+trials. Quote the p95 figure and say where it was measured.
 
 | Phase | State |
 |---|---|
 | 0. Foundation, gates, CI | Complete |
 | 1. REST API and contract | Complete |
 | 2. Evaluation engine | Complete |
-| 3. Real-time and SDK | Not started |
+| 3. Real-time and SDK | Complete |
 | 4. Statistics | Not started |
 | 5. Rollout automation and audit | Not started |
 | 6. Dashboard | Not started |
@@ -1032,6 +1035,30 @@ npm ci && npm run verify # frontend: tsc strict, type-aware ESLint, Vitest
 ```
 
 `.env` is gitignored. Copy `.env.example` and set `DB_PASSWORD` before anything else.
+
+### Phase 3 outcome and deviations from plan
+
+Coverage 41.6 to **43.1 percent line and 32.5 branch**. `com.rex.realtime` reached 87.5 line.
+CI grew from nine checks to **twelve**: a WebSocket end to end check, an isolated SDK typecheck,
+and a non blocking latency job.
+
+Findings:
+
+1. **Registering `/ws` twice, plain and with SockJS, shadows one of them.** They are now on
+   separate paths, `/ws` raw for the SDK and `/ws-sockjs` for browsers behind awkward proxies.
+2. **A STOMP client converter without the JSR-310 module silently drops the frame.** The event
+   carries an `Instant`, and nothing is logged anywhere, so the first run looked as though the
+   broadcast was not happening at all when in fact it was.
+3. **Spotless removes an import before its usage is written.** Adding an import in one edit and
+   its usage in a later one loses the import in between.
+4. **A flag turning on cannot be applied client side.** Inclusion depends on the user's bucket,
+   which only the server knows, so the SDK refetches rather than guessing. A flag turning off is
+   unambiguous and is applied locally.
+
+Deviation: **the listener uses `AFTER_COMMIT`, not plain publish.** Broadcasting before commit
+would tell clients about a change that could still roll back. Worth remembering in Phase 5, where
+the rollout scheduler runs outside a request transaction and therefore calls `broadcast` directly
+rather than relying on the transactional listener.
 
 ### Phase 2 outcome and deviations from plan
 
