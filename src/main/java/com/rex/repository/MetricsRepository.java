@@ -244,4 +244,34 @@ public interface MetricsRepository extends JpaRepository<Metrics, Long> {
           + " and m.variantName = :variantName")
   long countDistinctUsersByExperimentAndVariant(
       @Param("experimentId") Long experimentId, @Param("variantName") String variantName);
+
+  /**
+   * Exposures of one flag that were served the given decision, since a guardrail watches only the
+   * exposed cohort.
+   */
+  @Query(
+      "select count(m) from Metrics m where m.featureFlag.id = :flagId"
+          + " and m.servedDecision = :servedDecision and m.timestamp >= :since")
+  long countExposuresByDecisionSince(
+      @Param("flagId") Long flagId,
+      @Param("servedDecision") boolean servedDecision,
+      @Param("since") java.time.LocalDateTime since);
+
+  /** Events of one type recorded against a flag since a point in time. */
+  @Query(
+      "select count(m) from Metrics m where m.featureFlag.id = :flagId"
+          + " and m.eventType = :eventType and m.timestamp >= :since")
+  long countEventsByTypeSince(
+      @Param("flagId") Long flagId,
+      @Param("eventType") Metrics.EventType eventType,
+      @Param("since") java.time.LocalDateTime since);
+
+  /** Mean duration for one event type, used by the latency guardrail. */
+  @Query(
+      "select avg(m.durationMs) from Metrics m where m.featureFlag.id = :flagId"
+          + " and m.eventType = :eventType and m.timestamp >= :since and m.durationMs is not null")
+  Double averageDurationByTypeSince(
+      @Param("flagId") Long flagId,
+      @Param("eventType") Metrics.EventType eventType,
+      @Param("since") java.time.LocalDateTime since);
 }

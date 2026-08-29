@@ -31,14 +31,17 @@ public class RolloutService {
   private final RolloutScheduleRepository scheduleRepository;
   private final FeatureFlagRepository flagRepository;
   private final ChangePublisher changePublisher;
+  private final GuardrailEvaluator guardrailEvaluator;
 
   public RolloutService(
       RolloutScheduleRepository scheduleRepository,
       FeatureFlagRepository flagRepository,
-      ChangePublisher changePublisher) {
+      ChangePublisher changePublisher,
+      GuardrailEvaluator guardrailEvaluator) {
     this.scheduleRepository = scheduleRepository;
     this.flagRepository = flagRepository;
     this.changePublisher = changePublisher;
+    this.guardrailEvaluator = guardrailEvaluator;
   }
 
   /**
@@ -99,11 +102,53 @@ public class RolloutService {
    * changes nothing, so a duplicate sweep cannot skip a stage.
    */
   public boolean advanceIfDue(RolloutSchedule schedule, LocalDateTime now) {
+    return advanceIfDue(schedule, now, List.of());
+  }
+
+  /**
+   * Advances a stage unless a guardrail says otherwise.
+   *
+   * <p>Guardrails are checked before advancing, not after. Advancing first and measuring later
+   * would expose the next tranche of users to a problem already visible in the current one.
+   */
+  public boolean advanceIfDue(
+      RolloutSchedule schedule, LocalDateTime now, List<Guardrail> guardrails) {
+
     if (schedule.getStatus() != RolloutSchedule.RolloutStatus.RUNNING) {
       return false;
     }
     if (!schedule.dwellElapsed(now)) {
       return false;
+    }
+
+    if (!guardrails.isEmpty()) {
+      List<GuardrailVerdict> verdicts =
+          guardrailEvaluator.evaluate(
+              schedule.getFeatureFlag().getId(), guardrails, schedule.getStageEnteredAt(), now);
+
+      GuardrailVerdict breach =
+          verdicts.stream()
+              .filter(v -> v.status() == GuardrailVerdict.Status.BREACHED)
+              .findFirst()
+              .orElse(null);
+
+      if (breach != null) {
+        rollBack(schedule, breach.describe(), now);
+        return true;
+      }
+
+      // Insufficient or unreadable data blocks the advance without rolling back. Failing open
+      // here would let a monitoring outage quietly turn a guarded rollout into an unguarded one.
+      if (verdicts.stream().anyMatch(GuardrailVerdict::blocksAdvance)) {
+        logger.info(
+            "Rollout {} held: {}",
+            schedule.getId(),
+            verdicts.stream()
+                .filter(GuardrailVerdict::blocksAdvance)
+                .map(GuardrailVerdict::describe)
+                .toList());
+        return false;
+      }
     }
 
     int next = schedule.getCurrentStageIndex() + 1;
