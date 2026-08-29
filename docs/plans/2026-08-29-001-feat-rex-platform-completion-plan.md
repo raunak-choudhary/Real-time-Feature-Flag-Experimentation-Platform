@@ -1022,6 +1022,7 @@ trials. Quote the p95 figure and say where it was measured.
 | 5. Rollout automation and audit | Not started |
 | 6. Dashboard | Not started |
 | 7. Deployment | Not started |
+| 8. Legacy service coverage | Not started |
 
 ### How to resume
 
@@ -1180,6 +1181,40 @@ Three deviations from the plan as written:
 Every gate was verified to fail on a deliberate violation rather than passing vacuously: a
 controller reaching a repository broke two ArchUnit rules, and an unchecked index, an unused
 parameter and an explicit `any` were each rejected by the TypeScript gates.
+
+### Phase 8: Legacy Service Layer Coverage
+
+Added after Phase 4, once the coverage breakdown made the shape of the gap clear. **792 of 901
+uncovered lines, 88 percent, sit in `com.rex.service` and `com.rex.model`**, both inherited from
+the abandoned build. Every package authored during this work sits at 87 to 100 percent.
+
+- [ ] **Unit 8.1: FeatureFlagService and ExperimentService**
+
+**Goal:** Real tests for the business rules that have never had any.
+
+**Files:** Create `src/test/java/com/rex/service/FeatureFlagServiceTest.java`,
+`ExperimentServiceTest.java`
+
+**Approach:** Test the lifecycle transitions, the validation rules, and the query methods the API
+does not currently call. These are the same class of untested rules that produced defects in
+Phases 0 and 1, so the expectation is that this unit finds more.
+
+- [ ] **Unit 8.2: MetricsService aggregations**
+
+**Goal:** Cover the aggregation and funnel queries, which are the largest untested block.
+
+**Files:** Create `src/test/java/com/rex/service/MetricsServiceTest.java`
+
+**Approach:** Integration tests against Testcontainers Postgres with seeded events, since these
+methods are mostly queries and mocking the repository would prove nothing about the SQL.
+
+**Phase 8 exit condition:** Overall line coverage at or above 75 percent, with the increase coming
+from genuine behavioural tests rather than exercising entity accessors. Entity getters and setters
+are deliberately not targeted: a test for `getName()` inflates a number without protecting
+anything, and the difference between 95 percent earned and 95 percent padded is visible to any
+reviewer.
+
+---
 
 ## Plan Audit
 
