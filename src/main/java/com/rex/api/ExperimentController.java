@@ -82,6 +82,14 @@ public class ExperimentController {
         .body(mapper.toResponse(saved));
   }
 
+  // A draft cannot be started, and this is the only transition that leaves it. Without this route
+  // an experiment created through the API could never run through the API.
+  @PostMapping("/{id}/ready")
+  public ExperimentResponse markReady(@PathVariable Long id) {
+    requireExperiment(id);
+    return mapper.toResponse(experimentService.markExperimentReady(id));
+  }
+
   @PostMapping("/{id}/start")
   public ExperimentResponse start(@PathVariable Long id) {
     requireExperiment(id);

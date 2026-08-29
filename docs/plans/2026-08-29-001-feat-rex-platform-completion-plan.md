@@ -1006,8 +1006,8 @@ Stated so the catalogue entry can be written from verified facts rather than adj
 
 ## Current Status
 
-**Last completed: Phase 7. 238 Java tests, 49 TypeScript tests, verify green.**
-Resume at Phase 8, Unit 8.1.
+**Last completed: Phase 8. 332 Java tests, 49 TypeScript tests, verify green, 80.0% coverage.**
+Resume at Phase 9, the engineering documentation.
 
 Live: dashboard https://rex-platform-iota.vercel.app, API
 https://rex-platform-api.onrender.com, database Neon Postgres 18.6 in AWS us-east-2.
@@ -1025,7 +1025,7 @@ trials. Quote the p95 figure and say where it was measured.
 | 5. Rollout automation and audit | Complete |
 | 6. Dashboard | Complete |
 | 7. Deployment | Complete |
-| 8. Legacy service coverage | Not started |
+| 8. Legacy service coverage | Complete |
 
 
 #### Phase 7 outcome
@@ -1327,6 +1327,44 @@ re-checked afterwards for forward references. There are none.
   `src/main/java/com/rex/model/Experiment.java` (statistical fields already modelled)
 - Spring Boot 3.4 Problem Details, `spring-boot-starter-websocket` STOMP support
 - Wilson score interval for binomial proportion confidence bounds
+
+#### Phase 8 outcome
+
+Coverage went from 55.6% to 80.0% and the test count from 239 to 332. The enforced floor moved from
+0.52 line and 0.43 branch to 0.78 and 0.58.
+
+The three inherited services were the target, and covering them was worth more for what it found
+than for the number. Writing a test against real behaviour forces a statement about what that
+behaviour is, and five of those statements turned out to be wrong.
+
+Fixed:
+
+1. The hourly and daily metrics queries called FORMATDATETIME, an H2 function absent from Postgres.
+   Both threw on the deployed database, and the dashboard overview calls one of them. The comments
+   above them still described them as the H2 compatible versions, left from before the move to
+   Postgres. CI now greps for vendor only functions; that guard finds six occurrences in the
+   pre-fix file.
+2. Six flag mutators saved without publishing, so a change made through any of them never reached a
+   connected client. Only the four the controllers happened to call were publishing. The ChangeType
+   enum already carried a CREATED constant nothing published.
+3. The REST API had no route from DRAFT to READY, and start refuses anything not ready or paused,
+   so an experiment created through the API could never run through the API. The seeded experiments
+   are only RUNNING because the migration set that status directly.
+4. A missing or unparseable request body returned 500. Same shape as the unmapped path defect from
+   Phase 7: a client error falling through to the catch-all handler.
+
+Pinned rather than fixed, because changing them would alter what existing callers receive:
+
+- trackConversion writes conversionValue while trackPurchase writes revenue, so a caller reading
+  eventValue gets null rather than an error.
+- The dashboard overview scopes event counts to the environment asked for but not the error count.
+- High value events filter on eventValue, which purchases never set, so the largest amounts in the
+  system are the ones that query omits.
+- The flag usage summary returns a flagId when rows exist and omits it when none do.
+
+Not reached: com.rex.rollout sits at 0.90 line and 0.74 branch, so it was left out of the strict
+per-package rule. Its line ratio is a hair above the threshold and would break the build on any
+small change.
 
 ## Phase 9: Engineering documentation
 

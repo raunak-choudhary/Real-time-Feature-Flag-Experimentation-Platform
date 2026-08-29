@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -87,6 +88,17 @@ public class GlobalExceptionHandler {
 
   // Spring raises this for a path no controller claims. Without an explicit handler the catch-all
   // below turns every mistyped URL into a 500, which reports a server fault for a client error.
+  // A body that is absent or not parseable is something the caller did, so it belongs in the 400
+  // range. Left to the catch-all it reports a server fault for a malformed request.
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ProblemDetail handleUnreadableBody(HttpMessageNotReadableException exception) {
+    return problem(
+        HttpStatus.BAD_REQUEST,
+        "Malformed request body",
+        "The request body is missing or could not be parsed",
+        "malformed-body");
+  }
+
   @ExceptionHandler(NoResourceFoundException.class)
   public ProblemDetail handleNoResource(NoResourceFoundException exception) {
     return problem(

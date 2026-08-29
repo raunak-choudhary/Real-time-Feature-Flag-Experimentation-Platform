@@ -209,6 +209,66 @@ jobs:
           done
           echo "never became healthy"; docker logs ci-app; exit 1
 
+  service-layer:
+    name: Service layer (inherited code)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      # These three services were inherited untested and hold the flag lifecycle, the experiment
+      # lifecycle and every aggregation the dashboard reads. Failing by name says which one broke.
+      - name: Verify the flag, experiment and metrics services
+        run: ./mvnw -B --no-transfer-progress test -Dtest='com.rex.service.*Test' -DfailIfNoSpecifiedTests=false
+
+  broadcast-contract:
+    name: Broadcast contract (no silent flag change)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      # A mutator that saves without announcing still passes any test that reads the flag back, so
+      # the gap only shows up as a stale client. This job exists to make that failure loud.
+      - name: Verify every flag change is announced
+        run: ./mvnw -B --no-transfer-progress test -Dtest='com.rex.service.FlagChangeBroadcastTest' -DfailIfNoSpecifiedTests=false
+
+  api-contract:
+    name: API contract (status codes and errors)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      # Status codes are the part of an API that breaks without any test failing, because a
+      # catch-all handler answers every failure with a well formed body and a 500.
+      - name: Verify endpoint behaviour and error responses
+        run: ./mvnw -B --no-transfer-progress test -Dtest='com.rex.api.*Test' -DfailIfNoSpecifiedTests=false
+
+  portable-sql:
+    name: Portable SQL (no vendor only functions)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Queries written against H2 shipped to a Postgres deployment and threw there. Nothing caught
+      # it, because the name of a missing function is only rejected when the query actually runs.
+      - name: Reject H2 only functions in repository queries
+        run: |
+          if grep -rniE 'formatdatetime\(|parsedatetime\(|dateadd\(|datediff\(' src/main/java/com/rex/repository/ src/main/resources/db/; then
+            echo "::error::vendor specific SQL function found; use a portable equivalent"
+            exit 1
+          fi
+          echo "no vendor only SQL functions found"
+
   dashboard-build:
     name: Dashboard builds (Next.js)
     runs-on: ubuntu-latest
