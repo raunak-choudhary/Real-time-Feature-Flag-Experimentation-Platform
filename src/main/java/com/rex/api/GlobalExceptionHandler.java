@@ -13,6 +13,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Translates domain failures into RFC 7807 problem responses.
@@ -82,6 +83,17 @@ public class GlobalExceptionHandler {
             "validation");
     problem.setProperty("errors", fieldErrors);
     return problem;
+  }
+
+  // Spring raises this for a path no controller claims. Without an explicit handler the catch-all
+  // below turns every mistyped URL into a 500, which reports a server fault for a client error.
+  @ExceptionHandler(NoResourceFoundException.class)
+  public ProblemDetail handleNoResource(NoResourceFoundException exception) {
+    return problem(
+        HttpStatus.NOT_FOUND,
+        "Endpoint not found",
+        "No endpoint is mapped to " + exception.getResourcePath(),
+        "not-found");
   }
 
   @ExceptionHandler(Exception.class)
