@@ -132,4 +132,90 @@ class FlagEvaluatorTest {
 
     assertThat(FlagEvaluator.evaluate(unscoped, "user_1", "anything").enabled()).isTrue();
   }
+
+  @Test
+  @DisplayName("a targeting rule admits a segment regardless of their rollout bucket")
+  void targetingBeatsRollout() {
+    FlagContext targeted =
+        new FlagContext(
+            "targeted_flag",
+            true,
+            ENV,
+            0,
+            java.util.List.of(
+                new TargetingRule("country", RuleOperator.IN, java.util.List.of("CA"), true)));
+
+    EvaluationResult result =
+        FlagEvaluator.evaluate(targeted, "user_1", ENV, java.util.Map.of("country", "CA"));
+
+    assertThat(result.enabled()).as("zero percent rollout, but the rule admits them").isTrue();
+    assertThat(result.reason()).isEqualTo(EvaluationReason.TARGETING_RULE_MATCH);
+  }
+
+  @Test
+  @DisplayName("a user matching no rule falls through to percentage rollout")
+  void nonMatchingUserFallsThroughToRollout() {
+    FlagContext targeted =
+        new FlagContext(
+            "targeted_flag",
+            true,
+            ENV,
+            100,
+            java.util.List.of(
+                new TargetingRule("country", RuleOperator.IN, java.util.List.of("CA"), true)));
+
+    EvaluationResult result =
+        FlagEvaluator.evaluate(targeted, "user_1", ENV, java.util.Map.of("country", "DE"));
+
+    assertThat(result.enabled()).isTrue();
+    assertThat(result.reason())
+        .as("the rollout decided, not the rule")
+        .isEqualTo(EvaluationReason.ROLLOUT_INCLUDED);
+  }
+
+  @Test
+  @DisplayName("a rule can exclude a segment that the rollout would otherwise include")
+  void ruleCanExcludeDespiteFullRollout() {
+    FlagContext targeted =
+        new FlagContext(
+            "targeted_flag",
+            true,
+            ENV,
+            100,
+            java.util.List.of(
+                new TargetingRule("region", RuleOperator.EQUALS, java.util.List.of("EU"), false)));
+
+    EvaluationResult result =
+        FlagEvaluator.evaluate(targeted, "user_1", ENV, java.util.Map.of("region", "EU"));
+
+    assertThat(result.enabled()).isFalse();
+    assertThat(result.reason()).isEqualTo(EvaluationReason.TARGETING_RULE_EXCLUDED);
+  }
+
+  @Test
+  @DisplayName("the kill switch still wins over any targeting rule")
+  void disabledBeatsTargeting() {
+    FlagContext targeted =
+        new FlagContext(
+            "targeted_flag",
+            false,
+            ENV,
+            100,
+            java.util.List.of(
+                new TargetingRule("country", RuleOperator.IN, java.util.List.of("CA"), true)));
+
+    EvaluationResult result =
+        FlagEvaluator.evaluate(targeted, "user_1", ENV, java.util.Map.of("country", "CA"));
+
+    assertThat(result.reason()).isEqualTo(EvaluationReason.FLAG_DISABLED);
+  }
+
+  @Test
+  @DisplayName("a flag with no rules behaves exactly as it did before targeting existed")
+  void backwardCompatible() {
+    FlagContext plain = new FlagContext("plain_flag", true, ENV, 100);
+
+    assertThat(FlagEvaluator.evaluate(plain, "user_1", ENV).reason())
+        .isEqualTo(EvaluationReason.ROLLOUT_INCLUDED);
+  }
 }

@@ -18,6 +18,15 @@ public final class FlagEvaluator {
   private FlagEvaluator() {}
 
   public static EvaluationResult evaluate(FlagContext flag, String userId, String environment) {
+    return evaluate(flag, userId, environment, java.util.Map.of());
+  }
+
+  /** Evaluates with user attributes available for targeting rules. */
+  public static EvaluationResult evaluate(
+      FlagContext flag,
+      String userId,
+      String environment,
+      java.util.Map<String, String> attributes) {
     if (flag == null) {
       return EvaluationResult.off(EvaluationReason.FLAG_NOT_FOUND);
     }
@@ -26,6 +35,15 @@ public final class FlagEvaluator {
     }
     if (flag.environment() != null && !flag.environment().equals(environment)) {
       return EvaluationResult.off(EvaluationReason.ENVIRONMENT_MISMATCH);
+    }
+
+    // Targeting rules take precedence over the percentage, so a rule can admit a whole segment
+    // regardless of bucket, and the percentage remains the fallback for everyone else.
+    java.util.Optional<Boolean> ruled = RuleEvaluator.firstMatch(flag.rules(), attributes);
+    if (ruled.isPresent()) {
+      return ruled.get()
+          ? new EvaluationResult(true, EvaluationReason.TARGETING_RULE_MATCH, null)
+          : new EvaluationResult(false, EvaluationReason.TARGETING_RULE_EXCLUDED, null);
     }
 
     int bucket = BucketHasher.bucketFor(flag.name(), userId);

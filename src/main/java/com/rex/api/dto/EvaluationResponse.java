@@ -14,6 +14,8 @@ public record EvaluationResponse(
   public enum EvaluationReason {
     FLAG_DISABLED,
     ENVIRONMENT_MISMATCH,
+    TARGETING_RULE_MATCH,
+    TARGETING_RULE_EXCLUDED,
     ROLLOUT_INCLUDED,
     ROLLOUT_EXCLUDED,
     FLAG_NOT_FOUND
