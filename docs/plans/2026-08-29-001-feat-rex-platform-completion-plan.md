@@ -692,7 +692,7 @@ measured p95 latency recorded in the README.
 
 ### Phase 4: Statistical Analysis Engine
 
-- [ ] **Unit 4.1: Significance testing**
+- [x] **Unit 4.1: Significance testing**
 
 **Goal:** Answer whether an observed difference is real.
 
@@ -720,7 +720,7 @@ implementation exists.
 - Edge case: zero exposures in a variant returns an explicit insufficient-data result rather than dividing by zero.
 - Edge case: very large equal samples produce a p-value that is stable rather than underflowing.
 
-- [ ] **Unit 4.2: Sample size gating and peeking guard**
+- [x] **Unit 4.2: Sample size gating and peeking guard**
 
 **Goal:** Refuse to declare a winner before the experiment has earned one.
 
@@ -1006,8 +1006,8 @@ Stated so the catalogue entry can be written from verified facts rather than adj
 
 ## Current Status
 
-**Last completed: Phase 3, all three units. 143 Java tests, 20 TypeScript tests, verify green.**
-Resume at Phase 4, Unit 4.1.
+**Last completed: Phase 4, both units. 198 Java tests, 20 TypeScript tests, verify green.**
+Resume at Phase 5, Unit 5.1.
 
 Measured propagation latency, Colima with four cores: **p50 4ms, p95 6ms, max 88ms** over 50
 trials. Quote the p95 figure and say where it was measured.
@@ -1018,7 +1018,7 @@ trials. Quote the p95 figure and say where it was measured.
 | 1. REST API and contract | Complete |
 | 2. Evaluation engine | Complete |
 | 3. Real-time and SDK | Complete |
-| 4. Statistics | Not started |
+| 4. Statistics | Complete |
 | 5. Rollout automation and audit | Not started |
 | 6. Dashboard | Not started |
 | 7. Deployment | Not started |
@@ -1035,6 +1035,28 @@ npm ci && npm run verify # frontend: tsc strict, type-aware ESLint, Vitest
 ```
 
 `.env` is gitignored. Copy `.env.example` and set `DB_PASSWORD` before anything else.
+
+### Phase 4 outcome and deviations from plan
+
+Coverage 43.1 to **48.5 percent line and 39.8 branch**. `com.rex.statistics` reached 95.6 line and
+85.9 branch and now sits under the same strict package rule as `com.rex.evaluation`. CI grew to
+**thirteen checks** with a dedicated statistics job.
+
+Findings:
+
+1. **ArchUnit caught its first real violation.** The analysis service returned an API DTO, which is
+   the service layer depending on the API layer. The service now returns the domain type and the
+   controller maps. Until this point the layering rules had only ever passed, including vacuously
+   on empty packages, so this is the first time one has done actual work.
+2. **The normal CDF and its inverse are implemented in the project rather than pulled from a
+   library.** A reviewer can check them against a published table; they cannot check a dependency
+   they have to take on trust. Both are tested against standard normal tables.
+3. **Every statistical expectation is a hand derived worked example**, not a snapshot of the
+   implementation's own output. A self consistent statistics test proves only that the code does
+   what it does.
+
+No deviations from the plan in this phase. The headline verification, 200/1000 against 240/1000
+giving z = 2.1592 and p = 0.0308, matches the hand calculation to four decimal places.
 
 ### Phase 3 outcome and deviations from plan
 

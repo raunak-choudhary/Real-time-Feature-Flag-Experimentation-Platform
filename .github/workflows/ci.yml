@@ -106,6 +106,21 @@ jobs:
           path: target/site/jacoco/
           retention-days: 14
 
+  statistics:
+    name: Statistics (verified against worked examples)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+      # These assert against published normal tables and hand derived worked examples rather than
+      # against the implementation, so a silent regression in the arithmetic fails here by name.
+      - name: Verify significance, intervals and the peeking guard
+        run: ./mvnw -B --no-transfer-progress test -Dtest='com.rex.statistics.*Test' -DfailIfNoSpecifiedTests=false
+
   realtime:
     name: Real-time (WebSocket end to end)
     runs-on: ubuntu-latest

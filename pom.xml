@@ -46,8 +46,8 @@
       across runs and reports a figure several points higher than CI will see. Phase 2 to 0.60, Phase 4 to 0.85 line and 0.75 branch. The evaluation and
       statistics packages are pure functions and gain a stricter per-package rule once they exist.
     -->
-    <coverage.line.minimum>0.42</coverage.line.minimum>
-    <coverage.branch.minimum>0.31</coverage.branch.minimum>
+    <coverage.line.minimum>0.47</coverage.line.minimum>
+    <coverage.branch.minimum>0.38</coverage.branch.minimum>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -257,6 +257,7 @@
                   <element>PACKAGE</element>
                   <includes>
                     <include>com.rex.evaluation</include>
+                    <include>com.rex.statistics</include>
                   </includes>
                   <limits>
                     <limit>
