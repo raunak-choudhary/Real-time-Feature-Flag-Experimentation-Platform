@@ -1006,8 +1006,11 @@ Stated so the catalogue entry can be written from verified facts rather than adj
 
 ## Current Status
 
-**Last completed: Phase 6. 230 Java tests, 44 TypeScript tests, verify green.**
-Resume at Phase 7, Unit 7.1.
+**Last completed: Phase 7. 238 Java tests, 44 TypeScript tests, verify green.**
+Resume at Phase 8, Unit 8.1.
+
+Live: dashboard https://rex-platform-iota.vercel.app, API
+https://rex-platform-api.onrender.com, database Neon Postgres 18.6 in AWS us-east-2.
 
 Measured propagation latency, Colima with four cores: **p50 4ms, p95 6ms, max 88ms** over 50
 trials. Quote the p95 figure and say where it was measured.
@@ -1021,8 +1024,40 @@ trials. Quote the p95 figure and say where it was measured.
 | 4. Statistics | Complete |
 | 5. Rollout automation and audit | Complete |
 | 6. Dashboard | Complete |
-| 7. Deployment | Not started |
+| 7. Deployment | Complete |
 | 8. Legacy service coverage | Not started |
+
+
+#### Phase 7 outcome
+
+Three hosts, chosen so nothing needs a card on file: Vercel for the dashboard, Render for the API,
+Neon for Postgres. Render and Neon are both in AWS us-east-2, so a query does not cross the country.
+
+Verified live rather than assumed: the dashboard renders flags fetched from Render, which reads
+Neon. The statistics engine returns the same values on Neon's Postgres 18 as on local Postgres 16,
+z = 2.1591675854376513 and p = 0.03083705838019757, so the result does not depend on the engine
+version. Bucketing on the live service admitted 114 of 400 users on a 25 percent flag.
+
+Three defects surfaced only once the code ran on someone else's infrastructure:
+
+1. The application read `SERVER_PORT`, but hosting platforms inject `PORT`. It would have kept
+   listening on 8080 while the platform health checked another port. `PORT` now takes precedence
+   and the Dockerfile health check follows the same variable so the two cannot drift.
+2. Unmapped paths returned 500 rather than 404. The catch-all handler was also catching the
+   exception Spring raises when no controller claims a path. Resource level 404s were unaffected,
+   which is why local testing never showed it. Fixed, with `ErrorResponseTest` pinning the status
+   code for each failure a client can cause.
+3. `.vercelignore` used an unanchored `src/`, which matches any directory of that name at any
+   depth and so excluded `sdk/src`. Every path is now anchored.
+
+Deployment is manual for now. Auto-Deploy is set to On Commit and the branch is correct, but the
+service was created through the API and the Git provider is not linked for webhook events, so a
+push does not trigger a build. Clicking Connect on the service page resolves it. A deploy hook
+invoked from CI after the gate passes would be better than deploying on every push, since it only
+ships green commits.
+
+Free tier costs worth stating plainly: the API sleeps after 15 minutes idle and takes roughly
+50 seconds to wake, and a free instance expires after 90 days.
 
 ### How to resume
 
