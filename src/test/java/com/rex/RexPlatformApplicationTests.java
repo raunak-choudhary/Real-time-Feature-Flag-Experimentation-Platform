@@ -3,10 +3,10 @@ package com.rex;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.rex.support.PostgresIntegrationTest;
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
