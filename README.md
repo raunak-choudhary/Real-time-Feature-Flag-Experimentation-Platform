@@ -109,8 +109,8 @@ docker compose up -d          # PostgreSQL
 npm ci && npm run dev --workspace @rex/dashboard   # dashboard on :3000
 ```
 
-The demo seed produces an experiment with a real, significant result, so the dashboard opens on
-something rather than empty charts.
+The seed data includes an experiment with a significant result and a flag partway through a
+staged rollout, so a first run opens on something rather than empty panels.
 
 ## Testing and quality gates
 
@@ -158,7 +158,7 @@ either can move without touching the other.
 Each of these is a decision, not an oversight.
 
 - **No authentication.** This is an operator console, not a hosted SaaS. Auth would consume a phase
-  and demonstrate nothing the rest of the project does not.
+  and show nothing the rest of the project does not.
 - **No horizontal scale-out.** The broker broadcasts in-process and the scheduler assumes a single
   runner. On multiple nodes the broker needs a Redis relay and the scheduler needs distributed
   locking such as ShedLock. Both are known, neither is built.

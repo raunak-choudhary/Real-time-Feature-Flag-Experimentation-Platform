@@ -1,8 +1,8 @@
--- Reference seed data for local development and demos.
+-- Reference seed data for local development.
 -- Lives in a migration rather than data.sql because Spring's data.sql ordering is tied to
 -- Hibernate DDL, not Flyway, and running both produces a startup race.
 
--- REX PLATFORM - SAMPLE DATA INITIALIZATION
+-- REX PLATFORM - REFERENCE DATA INITIALIZATION
 -- Real-time Feature Flag & Experimentation Platform
 -- FEATURE FLAGS SAMPLE DATA
 -- Sample Feature Flags for different scenarios

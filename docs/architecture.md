@@ -73,9 +73,9 @@ in [real-time propagation](real-time-propagation.md).
 
 The dashboard is a thin surface over the same public interface any other client uses. It holds no
 privileged access and no logic of its own beyond presentation. This is partly discipline and partly
-demonstration: because it consumes the platform the same way an application would, anything it can
-show is something an application could have obtained, and a change visible in the dashboard within
-milliseconds is evidence that the propagation path works rather than an illustration of it.
+evidence: because it consumes the platform the same way an application would, anything it can show
+is something an application could have obtained, and a change appearing in the dashboard within
+milliseconds is proof that the propagation path works rather than an illustration of it.
 
 It is also, in engineering terms, the smallest part of the system. The substance is in the decision
 engines and the delivery automation.

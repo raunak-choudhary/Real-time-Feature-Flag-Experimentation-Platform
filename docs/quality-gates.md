@@ -73,7 +73,7 @@ have produced clients that silently never updated.
 
 The interface exposed no way to move an experiment from draft into a startable state, while the
 start operation refused anything not in that state. An experiment created through the interface
-could therefore never be started through it. This went unnoticed because the demonstration data
+could therefore never be started through it. This went unnoticed because the seed data
 sets the status directly.
 
 Unmapped paths returned a server error rather than a not-found, and a missing or malformed request
