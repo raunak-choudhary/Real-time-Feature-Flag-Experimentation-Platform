@@ -180,6 +180,35 @@ jobs:
       - name: Measure toggle to client latency
         run: ./mvnw -B --no-transfer-progress test -Pperformance
 
+  docker:
+    name: Container image builds and starts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t rex-platform:ci .
+      # Building is not the same as starting. A missing base architecture, a bad entrypoint or a
+      # broken healthcheck all pass a build and fail on first run.
+      - name: Start Postgres
+        run: |
+          docker run -d --name ci-postgres --network host \
+            -e POSTGRES_DB=rexdb -e POSTGRES_USER=rex_user -e POSTGRES_PASSWORD=ci_password \
+            postgres:16-alpine
+      - name: Start the app and wait for health
+        run: |
+          docker run -d --name ci-app --network host \
+            -e DATABASE_URL=jdbc:postgresql://localhost:5432/rexdb \
+            -e DB_USER=rex_user -e DB_PASSWORD=ci_password \
+            -e CORS_ALLOWED_ORIGINS=http://localhost:3000 \
+            rex-platform:ci
+          for i in $(seq 1 40); do
+            sleep 3
+            if curl -fsS http://localhost:8080/actuator/health | grep -q '"status":"UP"'; then
+              echo "healthy after ~$((i * 3))s"; exit 0
+            fi
+          done
+          echo "never became healthy"; docker logs ci-app; exit 1
+
   dashboard-build:
     name: Dashboard builds (Next.js)
     runs-on: ubuntu-latest

@@ -1,0 +1,14 @@
+target/
+node_modules/
+.next/
+out/
+frontend/
+sdk/
+docs/
+.git/
+.github/
+.env
+.env.*
+!.env.example
+*.md
+coverage/
