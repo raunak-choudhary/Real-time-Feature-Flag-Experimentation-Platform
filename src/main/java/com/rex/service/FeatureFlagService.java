@@ -70,6 +70,7 @@ public class FeatureFlagService {
     FeatureFlag savedFlag = featureFlagRepository.save(flag);
     logger.info("Successfully created feature flag: {} with ID: {}", name, savedFlag.getId());
 
+    publishChange(savedFlag, FlagChangedEvent.ChangeType.CREATED);
     return savedFlag;
   }
 
@@ -100,7 +101,9 @@ public class FeatureFlagService {
     flag.setEnvironment(environment);
     flag.setRolloutPercentage(rolloutPercentage);
 
-    return featureFlagRepository.save(flag);
+    FeatureFlag savedFlag = featureFlagRepository.save(flag);
+    publishChange(savedFlag, FlagChangedEvent.ChangeType.CREATED);
+    return savedFlag;
   }
 
   /** Get feature flag by ID. */
@@ -242,6 +245,7 @@ public class FeatureFlagService {
     FeatureFlag savedFlag = featureFlagRepository.save(flag);
 
     logger.info("Successfully enabled feature flag: {}", flag.getName());
+    publishChange(savedFlag, FlagChangedEvent.ChangeType.TOGGLED);
     return savedFlag;
   }
 
@@ -259,6 +263,7 @@ public class FeatureFlagService {
     FeatureFlag savedFlag = featureFlagRepository.save(flag);
 
     logger.info("Successfully disabled feature flag: {}", flag.getName());
+    publishChange(savedFlag, FlagChangedEvent.ChangeType.TOGGLED);
     return savedFlag;
   }
 
@@ -273,7 +278,9 @@ public class FeatureFlagService {
                 () -> new IllegalArgumentException("Feature flag not found with name: " + name));
 
     flag.activate();
-    return featureFlagRepository.save(flag);
+    FeatureFlag savedFlag = featureFlagRepository.save(flag);
+    publishChange(savedFlag, FlagChangedEvent.ChangeType.TOGGLED);
+    return savedFlag;
   }
 
   /** Disable flag by name. */
@@ -287,7 +294,9 @@ public class FeatureFlagService {
                 () -> new IllegalArgumentException("Feature flag not found with name: " + name));
 
     flag.deactivate();
-    return featureFlagRepository.save(flag);
+    FeatureFlag savedFlag = featureFlagRepository.save(flag);
+    publishChange(savedFlag, FlagChangedEvent.ChangeType.TOGGLED);
+    return savedFlag;
   }
 
   // ============================================
@@ -329,7 +338,9 @@ public class FeatureFlagService {
     int newRollout = Math.min(100, currentRollout + incrementPercentage);
 
     flag.setRolloutPercentage(newRollout);
-    return featureFlagRepository.save(flag);
+    FeatureFlag savedFlag = featureFlagRepository.save(flag);
+    publishChange(savedFlag, FlagChangedEvent.ChangeType.ROLLOUT_CHANGED);
+    return savedFlag;
   }
 
   /** Get flags with rollout percentage greater than specified value. */
