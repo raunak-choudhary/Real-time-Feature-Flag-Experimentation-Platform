@@ -17,6 +17,18 @@ import type {
  * disconnected cannot be replayed by the broker, so anything short of a refetch leaves the client
  * confidently serving stale decisions.
  */
+/**
+ * Builds the STOMP endpoint from a configured origin.
+ *
+ * `wsUrl` is an origin, and the endpoint path belongs to the SDK rather than to whoever sets the
+ * variable. Both forms are accepted anyway, because a deployment value carrying the path is the
+ * obvious mistake to make and it fails in the least visible way possible: the socket dials a path
+ * that does not exist, retries forever, and the only symptom is a reconnecting badge.
+ */
+export function brokerUrlFrom(wsUrl: string): string {
+  return `${wsUrl.replace(/\/+$/, "").replace(/\/ws$/, "")}/ws`;
+}
+
 export class RexClient {
   private readonly cache = new FlagCache();
   private readonly options: RexClientOptions;
@@ -77,7 +89,7 @@ export class RexClient {
     this.setState("connecting");
 
     const client = new Client({
-      brokerURL: `${this.options.wsUrl}/ws`,
+      brokerURL: brokerUrlFrom(this.options.wsUrl),
       // stompjs handles the backoff itself; anything missed while down is covered by the
       // refetch on reconnect below.
       reconnectDelay: 2000,

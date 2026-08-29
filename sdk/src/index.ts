@@ -5,7 +5,7 @@
  * bundle, so every consumer compiles it and resolves through their own bundler.
  */
 export { FlagCache } from "./FlagCache";
-export { RexClient } from "./RexClient";
+export { RexClient, brokerUrlFrom } from "./RexClient";
 export { isFlagOn } from "./evaluation";
 export type {
   ChangeType,
