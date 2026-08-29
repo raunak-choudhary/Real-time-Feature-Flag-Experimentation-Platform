@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FindBugsFilter>
-  <!-- JPA entities expose mutable collections and dates by design; Hibernate owns their lifecycle. -->
+  <!--
+    JPA entities expose mutable associations and dates by design; Hibernate owns their lifecycle
+    and a defensive copy would break dirty checking and lazy loading. Listed by package and by
+    class rather than suppressed globally, so a plain data holder outside these does not get a
+    free pass.
+  -->
   <Match>
     <Package name="com.rex.model"/>
+    <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Or>
+      <Class name="com.rex.rollout.RolloutSchedule"/>
+      <Class name="com.rex.rollout.RolloutStage"/>
+    </Or>
     <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
   </Match>
 
