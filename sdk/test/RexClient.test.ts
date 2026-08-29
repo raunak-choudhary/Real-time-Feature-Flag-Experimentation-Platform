@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RexClient } from "../src/RexClient.js";
-import type { ConnectionState, EvaluationResult, RexClientOptions } from "../src/types.js";
+import { RexClient } from "../src/RexClient";
+import type { ConnectionState, EvaluationResult, RexClientOptions } from "../src/types";
 
 const bootstrap: EvaluationResult[] = [
   { flagName: "dark_mode", enabled: true, reason: "ROLLOUT_INCLUDED", bucket: 10 },

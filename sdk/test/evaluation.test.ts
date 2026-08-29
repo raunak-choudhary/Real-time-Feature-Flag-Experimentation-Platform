@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isFlagOn } from "../src/evaluation.js";
-import type { EvaluationResult } from "../src/types.js";
+import { isFlagOn } from "../src/evaluation";
+import type { EvaluationResult } from "../src/types";
 
 const results: readonly EvaluationResult[] = [
   { flagName: "dark_mode", enabled: true, reason: "ROLLOUT_INCLUDED", bucket: 1234 },

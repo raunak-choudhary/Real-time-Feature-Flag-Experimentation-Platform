@@ -1,4 +1,4 @@
-import type { EvaluationResult, FlagChangedEvent } from "./types.js";
+import type { EvaluationResult, FlagChangedEvent } from "./types";
 
 /**
  * The local decision cache.

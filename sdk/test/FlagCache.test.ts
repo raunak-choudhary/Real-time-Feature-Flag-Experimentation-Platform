@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { FlagCache } from "../src/FlagCache.js";
-import type { EvaluationResult, FlagChangedEvent } from "../src/types.js";
+import { FlagCache } from "../src/FlagCache";
+import type { EvaluationResult, FlagChangedEvent } from "../src/types";
 
 const darkMode: EvaluationResult = {
   flagName: "dark_mode",

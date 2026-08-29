@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "preserve",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["vitest/globals"],
+    "types": ["vitest/globals", "node"],
 
     // The closest TypeScript gets to running mypy in strict mode. Each of these turns a class
     // of runtime failure into a compile error.

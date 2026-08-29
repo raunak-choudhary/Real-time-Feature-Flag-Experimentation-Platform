@@ -1,11 +1,11 @@
 import { Client, type IMessage } from "@stomp/stompjs";
-import { FlagCache } from "./FlagCache.js";
+import { FlagCache } from "./FlagCache";
 import type {
   ConnectionState,
   EvaluationResult,
   FlagChangedEvent,
   RexClientOptions,
-} from "./types.js";
+} from "./types";
 
 /**
  * Feature flag client.

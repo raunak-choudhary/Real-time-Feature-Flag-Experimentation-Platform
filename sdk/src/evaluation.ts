@@ -1,4 +1,4 @@
-import type { EvaluationResult } from "./types.js";
+import type { EvaluationResult } from "./types";
 
 /**
  * Reads a decision out of a set of evaluation results.
