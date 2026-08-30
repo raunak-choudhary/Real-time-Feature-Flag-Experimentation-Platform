@@ -214,12 +214,8 @@ with NullAway, Vitest, React Testing Library, ESLint.
 
 **Raunak Choudhary**
 
-M.S. Computer Science, New York University. I build backend systems and care most about the parts
-that are difficult to verify: correctness under concurrency, statistical claims that survive
-scrutiny, and automation trusted to act without a human watching.
+The interesting half of a feature flag system is the half most implementations skip: proving a
+difference is real rather than noise, and trusting automation to roll a release back with nobody
+watching. That is the half this was built for.
 
-REX Platform began as an abandoned three-commit skeleton and was rebuilt into a deployed,
-documented service across nine phases. The engineering reasoning behind every significant choice
-is written up in the [documentation](docs/README.md) and the [decision log](docs/decisions/README.md).
-
-[Email](mailto:raunakchoudhary17@gmail.com) · [LinkedIn](https://www.linkedin.com/in/raunak-choudhary) · [GitHub](https://github.com/raunak-choudhary)
+[Email](mailto:raunakchoudhary17@gmail.com) · [LinkedIn](https://www.linkedin.com/in/raunak-choudhary)
