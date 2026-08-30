@@ -6,11 +6,40 @@ earns one. Set a staged rollout and it advances on its own, watching error rates
 reverting itself if they spike.
 
 [![CI](https://github.com/raunak-choudhary/Real-time-Feature-Flag-Experimentation-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/raunak-choudhary/Real-time-Feature-Flag-Experimentation-Platform/actions/workflows/ci.yml)
+![Tests](https://img.shields.io/badge/tests-381%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/line%20coverage-79.8%25-brightgreen)
+![CI checks](https://img.shields.io/badge/CI%20checks-20-blue)
+![Java](https://img.shields.io/badge/Java-17-orange)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4-6DB33F)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6)
 
 **[Live dashboard](https://rex-platform-iota.vercel.app)** · **[API](https://rex-platform-api.onrender.com/swagger-ui/index.html)** · **[Documentation](docs/README.md)**
 
 The API runs on a free instance that sleeps when idle, so the first request after a quiet period
 takes about a minute to wake.
+
+## By the numbers
+
+Every figure below is measured, not estimated. The ones that are environment-dependent say so.
+
+| | |
+|---|---|
+| **381 tests passing** | 332 backend, 49 frontend and SDK |
+| **79.8% line coverage** | Enforced as a build floor at 78%, not reported after the fact |
+| **96.4% and 95.6% on the decision engines** | Evaluation and statistics, under a stricter per-package rule |
+| **20 independent CI checks** | A failure names the subsystem rather than the build |
+| **25 REST endpoints** | Full OpenAPI coverage, plus two STOMP endpoints |
+| **7 ordered migrations** | Validated against the JPA mapping at startup |
+| **p95 6ms propagation** | Toggle to client receipt, measured over 50 trials, 4-core machine |
+| **100,000-user uniformity test** | Chi-square on bucket distribution, below the 0.001 critical value |
+| **8 targeting operators** | First-match-wins ordering proven by test |
+| **~7,650 lines of production Java** | Across 77 source files and 13 packages |
+| **~4,680 lines of test Java** | Across 36 test classes |
+
+The coverage split is deliberate rather than uniform. The evaluation and statistics engines are
+pure functions with no framework, clock or storage, so exercising them exhaustively is cheap and
+they carry the strictest requirement. Applying the same figure everywhere would push effort toward
+code where the extra tests would assert very little.
 
 ## What makes this different from a flag CRUD app
 
@@ -120,8 +149,8 @@ npm run verify                # tsc strict, type-aware ESLint, Vitest
 ./mvnw test -Pperformance     # latency measurement, excluded from the default gate
 ```
 
-**332 backend tests, 49 frontend and SDK tests, 80% line coverage.** Twenty independent CI checks,
-so a failure names what broke rather than reporting a generic build error:
+Twenty independent CI checks run on every push, so a failure names what broke rather than
+reporting a generic build error:
 
 | Backend | Frontend |
 |---|---|
@@ -181,6 +210,16 @@ with NullAway, Vitest, React Testing Library, ESLint.
 
 **Infrastructure.** Docker, GitHub Actions, Vercel, Render, Neon.
 
----
+## Author
 
-Built by **Raunak Choudhary**.
+**Raunak Choudhary**
+
+M.S. Computer Science, New York University. I build backend systems and care most about the parts
+that are difficult to verify: correctness under concurrency, statistical claims that survive
+scrutiny, and automation trusted to act without a human watching.
+
+REX Platform began as an abandoned three-commit skeleton and was rebuilt into a deployed,
+documented service across nine phases. The engineering reasoning behind every significant choice
+is written up in the [documentation](docs/README.md) and the [decision log](docs/decisions/README.md).
+
+[Email](mailto:raunakchoudhary17@gmail.com) · [LinkedIn](https://www.linkedin.com/in/raunak-choudhary) · [GitHub](https://github.com/raunak-choudhary)
